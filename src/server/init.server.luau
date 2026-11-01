@@ -2672,6 +2672,8 @@ local function triggerFoul(foulerSlot: BotSlot, fouledModel: Model, foulPos: Vec
         end)
     end)
 end
+
+local function updateBotSlotAI(
     slot: BotSlot,
     allyTeam: { [string]: BotSlot },
     enemyTeam: { [string]: BotSlot },

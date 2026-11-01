@@ -110,18 +110,18 @@ player.CharacterAdded:Connect(setupCharacter)
 --------------------------------------------------------------------------------
 -- 2. LOCALIZAR REMOTE EVENTS
 --------------------------------------------------------------------------------
-local remoteFolder = ReplicatedStorage:WaitForChild("SoccerRemotes", 15) :: Folder
-local startChargeEvent = remoteFolder:WaitForChild("StartCharge", 15) :: RemoteEvent
-local releaseShotEvent = remoteFolder:WaitForChild("ReleaseShot", 15) :: RemoteEvent
-local quickShotEvent = remoteFolder:WaitForChild("QuickShot", 15) :: RemoteEvent
-local ballPossessionEvent = remoteFolder:WaitForChild("BallPossession", 15) :: RemoteEvent
-local goalScoredEvent = remoteFolder:WaitForChild("GoalScored", 15) :: RemoteEvent
-local updateScoreEvent = remoteFolder:WaitForChild("UpdateScore", 15) :: RemoteEvent
-local shotCooldownEvent = remoteFolder:WaitForChild("ShotCooldown", 15) :: RemoteEvent
-local matchTimeEvent = remoteFolder:WaitForChild("MatchTimeUpdate", 15) :: RemoteEvent
-local goalAnnouncementEvent = remoteFolder:WaitForChild("GoalAnnouncement", 15) :: RemoteEvent
-local toggleMatchEvent = remoteFolder:WaitForChild("ToggleMatch", 15) :: RemoteEvent
-local foulAnnouncementEvent = remoteFolder:WaitForChild("FoulAnnouncement", 15) :: RemoteEvent
+local remoteFolder = ReplicatedStorage:WaitForChild("SoccerRemotes") :: Folder
+local startChargeEvent = remoteFolder:WaitForChild("StartCharge") :: RemoteEvent
+local releaseShotEvent = remoteFolder:WaitForChild("ReleaseShot") :: RemoteEvent
+local quickShotEvent = remoteFolder:WaitForChild("QuickShot") :: RemoteEvent
+local ballPossessionEvent = remoteFolder:WaitForChild("BallPossession") :: RemoteEvent
+local goalScoredEvent = remoteFolder:WaitForChild("GoalScored") :: RemoteEvent
+local updateScoreEvent = remoteFolder:WaitForChild("UpdateScore") :: RemoteEvent
+local shotCooldownEvent = remoteFolder:WaitForChild("ShotCooldown") :: RemoteEvent
+local matchTimeEvent = remoteFolder:WaitForChild("MatchTimeUpdate") :: RemoteEvent
+local goalAnnouncementEvent = remoteFolder:WaitForChild("GoalAnnouncement") :: RemoteEvent
+local toggleMatchEvent = remoteFolder:WaitForChild("ToggleMatch") :: RemoteEvent
+local foulAnnouncementEvent = remoteFolder:WaitForChild("FoulAnnouncement") :: RemoteEvent
 
 --------------------------------------------------------------------------------
 -- 3. INTERFAZ GRÁFICA TELEVISIVA: MARCADOR + RELOJ + NOMBRES DE CLUBES
