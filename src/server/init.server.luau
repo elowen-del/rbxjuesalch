@@ -908,7 +908,8 @@ local firstHalfAddedMins = 0
 local secondHalfAddedMins = 0
 local halftimeRealSecondsLeft = 60
 local fulltimeRealSecondsLeft = 60
-local isMatchPaused = false
+local isMatchPaused = true
+local isMatchStarted = false
 local currentPeriodSideSwapped = false
 
 local function getFormattedGameMinute(): string
@@ -1366,19 +1367,48 @@ local function setupGoalkeeperModel(
     return gk, slot
 end
 
+local function areColorsTooSimilar(c1: Color3, c2: Color3): boolean
+    local dr = c1.R - c2.R
+    local dg = c1.G - c2.G
+    local db = c1.B - c2.B
+    local dist = math.sqrt(dr * dr + dg * dg + db * db)
+    return dist < 0.42
+end
+
+local function selectClubsWithDifferentKits(): (any, any)
+    local numClubs = #TeamsData.CLUBS
+    local cIndexA = math.random(1, numClubs)
+    local clubA = TeamsData.CLUBS[cIndexA]
+
+    local candidateIndices: {number} = {}
+    for i = 1, numClubs do
+        if i ~= cIndexA then
+            local clubB = TeamsData.CLUBS[i]
+            if not areColorsTooSimilar(clubA.primaryColor, clubB.primaryColor) then
+                table.insert(candidateIndices, i)
+            end
+        end
+    end
+
+    local cIndexB: number
+    if #candidateIndices > 0 then
+        cIndexB = candidateIndices[math.random(1, #candidateIndices)]
+    else
+        cIndexB = math.random(1, numClubs)
+        while cIndexB == cIndexA do
+            cIndexB = math.random(1, numClubs)
+        end
+    end
+
+    return clubA, TeamsData.CLUBS[cIndexB]
+end
+
 local function spawnFull6v6Match()
     cleanTeam(teamBlueBots)
     cleanTeam(teamRedBots)
 
-    local cIndexA = math.random(1, #TeamsData.CLUBS)
-    local cIndexB = math.random(1, #TeamsData.CLUBS)
-    while cIndexB == cIndexA do
-        cIndexB = math.random(1, #TeamsData.CLUBS)
-    end
-
-    currentClubA = TeamsData.CLUBS[cIndexA]
-    currentClubB = TeamsData.CLUBS[cIndexB]
-    print(string.format("[PARTIDO] Enfrentamiento: %s vs %s", currentClubA.name, currentClubB.name))
+    currentClubA, currentClubB = selectClubsWithDifferentKits()
+    print(string.format("[PARTIDO] Enfrentamiento: %s vs %s (Kits contrastados garantizados)", currentClubA.name, currentClubB.name))
 
     buildStadiumStands(currentClubA, currentClubB)
     updateScoreEvent:FireAllClients(scoreBlue, scoreRed, currentClubA.name, currentClubB.name)
@@ -2450,6 +2480,13 @@ local function updateMatchClock()
     local realDt = os.clock() - lastClockTick
     lastClockTick = os.clock()
 
+    if not isMatchStarted or isMatchPaused then
+        if not isMatchStarted then
+            matchTimeEvent:FireAllClients("00:00", "EN ESPERA", false)
+        end
+        return
+    end
+
     local gameDt = realDt * 18
 
     if currentMatchState == MATCH_STATE_FIRST_HALF then
@@ -2625,6 +2662,7 @@ local function handleChatMessage(player: Player, rawMessage: string)
         scoreBlue = 0
         scoreRed = 0
         isMatchPaused = false
+        isMatchStarted = true
         spawnFull6v6Match()
         resetPositionsToField()
         spawnBall(CFrame.new(0, 2.5, 0))
@@ -2632,6 +2670,9 @@ local function handleChatMessage(player: Player, rawMessage: string)
         cleanTeam(teamBlueBots)
         cleanTeam(teamRedBots)
         releaseBall()
+        isMatchStarted = false
+        isMatchPaused = true
+        matchTimeEvent:FireAllClients("00:00", "EN ESPERA", false)
         print("[SERVIDOR] Partido detenido y bots eliminados.")
     elseif clean == "ball!" or clean == "/ball!" or clean == "ball" then
         local char = player.Character
@@ -2675,13 +2716,14 @@ pcall(function()
 end)
 
 toggleMatchEvent.OnServerEvent:Connect(function(player)
-    if next(teamBlueBots) == nil then
+    if not isMatchStarted then
         currentPeriodSideSwapped = false
         currentMatchState = MATCH_STATE_FIRST_HALF
         matchGameSeconds = 0
         scoreBlue = 0
         scoreRed = 0
         isMatchPaused = false
+        isMatchStarted = true
         spawnFull6v6Match()
         resetPositionsToField()
         spawnBall(CFrame.new(0, 2.5, 0))
@@ -2689,6 +2731,9 @@ toggleMatchEvent.OnServerEvent:Connect(function(player)
         cleanTeam(teamBlueBots)
         cleanTeam(teamRedBots)
         releaseBall()
+        isMatchStarted = false
+        isMatchPaused = true
+        matchTimeEvent:FireAllClients("00:00", "EN ESPERA", false)
         print("[SERVIDOR] Partido detenido desde botón de interfaz.")
     end
 end)
