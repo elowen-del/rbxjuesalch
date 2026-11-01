@@ -4,6 +4,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 local RunService = game:GetService("RunService")
 
+-- Helper seguro para math.clamp que corrige min > max automÃ¡ticamente
+local function safeClamp(value: number, a: number, b: number): number
+    local lo = math.min(a, b)
+    local hi = math.max(a, b)
+    return math.clamp(value, lo, hi)
+end
+
 local TeamsData = {}
 
 TeamsData.CLUBS = {
@@ -291,80 +298,80 @@ TeamsData.CLUBS = {
 
 TeamsData.PLAYERS = {
     -- DELANTEROS (ST)
-    {name = "Kylian Mbappé", role = "Delantero", posTag = "ST", speed = 98, shot = 94, pass = 82, defense = 38, dribble = 93, stamina = 89, control = 92, physical = 78},
+    {name = "Kylian MbappÃ©", role = "Delantero", posTag = "ST", speed = 98, shot = 94, pass = 82, defense = 38, dribble = 93, stamina = 89, control = 92, physical = 78},
     {name = "Erling Haaland", role = "Delantero", posTag = "ST", speed = 91, shot = 96, pass = 68, defense = 45, dribble = 80, stamina = 88, control = 85, physical = 91},
     {name = "Lionel Messi", role = "Delantero", posTag = "ST", speed = 82, shot = 95, pass = 94, defense = 35, dribble = 96, stamina = 75, control = 97, physical = 66},
     {name = "Cristiano Ronaldo", role = "Delantero", posTag = "ST", speed = 84, shot = 95, pass = 78, defense = 36, dribble = 82, stamina = 79, control = 88, physical = 84},
-    {name = "Vinícius Júnior", role = "Delantero", posTag = "ST", speed = 97, shot = 88, pass = 82, defense = 34, dribble = 95, stamina = 87, control = 93, physical = 70},
+    {name = "VinÃ­cius JÃºnior", role = "Delantero", posTag = "ST", speed = 97, shot = 88, pass = 82, defense = 34, dribble = 95, stamina = 87, control = 93, physical = 70},
     {name = "Robert Lewandowski", role = "Delantero", posTag = "ST", speed = 76, shot = 93, pass = 80, defense = 42, dribble = 84, stamina = 79, control = 89, physical = 83},
     {name = "Harry Kane", role = "Delantero", posTag = "ST", speed = 73, shot = 95, pass = 88, defense = 48, dribble = 83, stamina = 83, control = 89, physical = 84},
     {name = "Mohamed Salah", role = "Delantero", posTag = "ST", speed = 92, shot = 91, pass = 84, defense = 45, dribble = 90, stamina = 86, control = 89, physical = 76},
     {name = "Lamine Yamal", role = "Delantero", posTag = "ST", speed = 92, shot = 85, pass = 87, defense = 36, dribble = 92, stamina = 84, control = 90, physical = 68},
-    {name = "Lautaro Martínez", role = "Delantero", posTag = "ST", speed = 83, shot = 90, pass = 76, defense = 48, dribble = 86, stamina = 86, control = 87, physical = 84},
+    {name = "Lautaro MartÃ­nez", role = "Delantero", posTag = "ST", speed = 83, shot = 90, pass = 76, defense = 48, dribble = 86, stamina = 86, control = 87, physical = 84},
     {name = "Victor Osimhen", role = "Delantero", posTag = "ST", speed = 90, shot = 88, pass = 66, defense = 42, dribble = 80, stamina = 84, control = 82, physical = 85},
-    {name = "Julián Álvarez", role = "Delantero", posTag = "ST", speed = 86, shot = 88, pass = 82, defense = 55, dribble = 85, stamina = 90, control = 87, physical = 78},
+    {name = "JuliÃ¡n Ãlvarez", role = "Delantero", posTag = "ST", speed = 86, shot = 88, pass = 82, defense = 55, dribble = 85, stamina = 90, control = 87, physical = 78},
     {name = "Antoine Griezmann", role = "Delantero", posTag = "ST", speed = 80, shot = 88, pass = 89, defense = 60, dribble = 87, stamina = 88, control = 89, physical = 74},
     {name = "Rodrygo Goes", role = "Delantero", posTag = "ST", speed = 90, shot = 85, pass = 82, defense = 38, dribble = 89, stamina = 83, control = 88, physical = 68},
-    {name = "Rafael Leão", role = "Delantero", posTag = "ST", speed = 94, shot = 84, pass = 79, defense = 32, dribble = 91, stamina = 81, control = 88, physical = 79},
+    {name = "Rafael LeÃ£o", role = "Delantero", posTag = "ST", speed = 94, shot = 84, pass = 79, defense = 32, dribble = 91, stamina = 81, control = 88, physical = 79},
     {name = "Son Heung-min", role = "Delantero", posTag = "ST", speed = 88, shot = 90, pass = 82, defense = 44, dribble = 85, stamina = 84, control = 86, physical = 72},
     {name = "Bukayo Saka", role = "Delantero", posTag = "ST", speed = 87, shot = 85, pass = 84, defense = 58, dribble = 88, stamina = 87, control = 87, physical = 76},
-    {name = "Darwin Núñez", role = "Delantero", posTag = "ST", speed = 91, shot = 84, pass = 72, defense = 46, dribble = 78, stamina = 86, control = 80, physical = 88},
+    {name = "Darwin NÃºÃ±ez", role = "Delantero", posTag = "ST", speed = 91, shot = 84, pass = 72, defense = 46, dribble = 78, stamina = 86, control = 80, physical = 88},
     {name = "Neymar Jr", role = "Delantero", posTag = "ST", speed = 85, shot = 87, pass = 88, defense = 34, dribble = 94, stamina = 70, control = 94, physical = 63},
     {name = "Karim Benzema", role = "Delantero", posTag = "ST", speed = 78, shot = 90, pass = 84, defense = 40, dribble = 86, stamina = 76, control = 90, physical = 78},
 
     -- CENTROCAMPISTAS (CM)
     {name = "Kevin De Bruyne", role = "Central", posTag = "CM", speed = 74, shot = 88, pass = 95, defense = 65, dribble = 86, stamina = 82, control = 92, physical = 75},
     {name = "Jude Bellingham", role = "Central", posTag = "CM", speed = 83, shot = 87, pass = 86, defense = 80, dribble = 88, stamina = 92, control = 90, physical = 85},
-    {name = "Rodri Hernández", role = "Central", posTag = "CM", speed = 68, shot = 82, pass = 90, defense = 89, dribble = 82, stamina = 93, control = 89, physical = 86},
-    {name = "Luka Modrić", role = "Central", posTag = "CM", speed = 72, shot = 80, pass = 91, defense = 72, dribble = 88, stamina = 78, control = 92, physical = 67},
+    {name = "Rodri HernÃ¡ndez", role = "Central", posTag = "CM", speed = 68, shot = 82, pass = 90, defense = 89, dribble = 82, stamina = 93, control = 89, physical = 86},
+    {name = "Luka ModriÄ‡", role = "Central", posTag = "CM", speed = 72, shot = 80, pass = 91, defense = 72, dribble = 88, stamina = 78, control = 92, physical = 67},
     {name = "Federico Valverde", role = "Central", posTag = "CM", speed = 90, shot = 85, pass = 84, defense = 80, dribble = 84, stamina = 96, control = 86, physical = 83},
-    {name = "Pedri González", role = "Central", posTag = "CM", speed = 78, shot = 76, pass = 90, defense = 70, dribble = 90, stamina = 84, control = 92, physical = 68},
-    {name = "Martin Ødegaard", role = "Central", posTag = "CM", speed = 77, shot = 83, pass = 91, defense = 62, dribble = 89, stamina = 87, control = 91, physical = 68},
+    {name = "Pedri GonzÃ¡lez", role = "Central", posTag = "CM", speed = 78, shot = 76, pass = 90, defense = 70, dribble = 90, stamina = 84, control = 92, physical = 68},
+    {name = "Martin Ã˜degaard", role = "Central", posTag = "CM", speed = 77, shot = 83, pass = 91, defense = 62, dribble = 89, stamina = 87, control = 91, physical = 68},
     {name = "Bernardo Silva", role = "Central", posTag = "CM", speed = 78, shot = 80, pass = 89, defense = 68, dribble = 92, stamina = 93, control = 92, physical = 69},
     {name = "Declan Rice", role = "Central", posTag = "CM", speed = 76, shot = 74, pass = 83, defense = 88, dribble = 79, stamina = 93, control = 83, physical = 86},
     {name = "Toni Kroos", role = "Central", posTag = "CM", speed = 60, shot = 83, pass = 94, defense = 72, dribble = 81, stamina = 75, control = 92, physical = 70},
     {name = "Eduardo Camavinga", role = "Central", posTag = "CM", speed = 84, shot = 73, pass = 83, defense = 82, dribble = 84, stamina = 88, control = 86, physical = 81},
-    {name = "Nicolò Barella", role = "Central", posTag = "CM", speed = 81, shot = 78, pass = 85, defense = 78, dribble = 85, stamina = 94, control = 86, physical = 76},
+    {name = "NicolÃ² Barella", role = "Central", posTag = "CM", speed = 81, shot = 78, pass = 85, defense = 78, dribble = 85, stamina = 94, control = 86, physical = 76},
     {name = "Bruno Fernandes", role = "Central", posTag = "CM", speed = 75, shot = 86, pass = 90, defense = 68, dribble = 83, stamina = 92, control = 87, physical = 75},
     {name = "Frenkie de Jong", role = "Central", posTag = "CM", speed = 82, shot = 72, pass = 87, defense = 77, dribble = 89, stamina = 87, control = 90, physical = 78},
     {name = "Alexis Mac Allister", role = "Central", posTag = "CM", speed = 74, shot = 80, pass = 86, defense = 76, dribble = 83, stamina = 86, control = 86, physical = 75},
-    {name = "Aurélien Tchouaméni", role = "Central", posTag = "CM", speed = 74, shot = 75, pass = 82, defense = 85, dribble = 79, stamina = 88, control = 83, physical = 85},
-    {name = "Gavi Páez", role = "Central", posTag = "CM", speed = 78, shot = 70, pass = 81, defense = 76, dribble = 84, stamina = 92, control = 84, physical = 74},
-    {name = "Hakan Çalhanoğlu", role = "Central", posTag = "CM", speed = 70, shot = 85, pass = 89, defense = 74, dribble = 82, stamina = 84, control = 86, physical = 73},
-    {name = "Enzo Fernández", role = "Central", posTag = "CM", speed = 72, shot = 78, pass = 86, defense = 75, dribble = 81, stamina = 85, control = 85, physical = 77},
-    {name = "N'Golo Kanté", role = "Central", posTag = "CM", speed = 78, shot = 66, pass = 78, defense = 87, dribble = 80, stamina = 93, control = 82, physical = 80},
+    {name = "AurÃ©lien TchouamÃ©ni", role = "Central", posTag = "CM", speed = 74, shot = 75, pass = 82, defense = 85, dribble = 79, stamina = 88, control = 83, physical = 85},
+    {name = "Gavi PÃ¡ez", role = "Central", posTag = "CM", speed = 78, shot = 70, pass = 81, defense = 76, dribble = 84, stamina = 92, control = 84, physical = 74},
+    {name = "Hakan Ã‡alhanoÄŸlu", role = "Central", posTag = "CM", speed = 70, shot = 85, pass = 89, defense = 74, dribble = 82, stamina = 84, control = 86, physical = 73},
+    {name = "Enzo FernÃ¡ndez", role = "Central", posTag = "CM", speed = 72, shot = 78, pass = 86, defense = 75, dribble = 81, stamina = 85, control = 85, physical = 77},
+    {name = "N'Golo KantÃ©", role = "Central", posTag = "CM", speed = 78, shot = 66, pass = 78, defense = 87, dribble = 80, stamina = 93, control = 82, physical = 80},
 
     -- DEFENSAS (DEF)
     {name = "Virgil van Dijk", role = "Defensa", posTag = "DEF", speed = 80, shot = 60, pass = 74, defense = 92, dribble = 72, stamina = 85, control = 81, physical = 91},
-    {name = "Rúben Dias", role = "Defensa", posTag = "DEF", speed = 73, shot = 45, pass = 72, defense = 90, dribble = 69, stamina = 88, control = 78, physical = 89},
-    {name = "Antonio Rüdiger", role = "Defensa", posTag = "DEF", speed = 88, shot = 55, pass = 71, defense = 87, dribble = 68, stamina = 89, control = 76, physical = 90},
+    {name = "RÃºben Dias", role = "Defensa", posTag = "DEF", speed = 73, shot = 45, pass = 72, defense = 90, dribble = 69, stamina = 88, control = 78, physical = 89},
+    {name = "Antonio RÃ¼diger", role = "Defensa", posTag = "DEF", speed = 88, shot = 55, pass = 71, defense = 87, dribble = 68, stamina = 89, control = 76, physical = 90},
     {name = "William Saliba", role = "Defensa", posTag = "DEF", speed = 82, shot = 42, pass = 74, defense = 88, dribble = 72, stamina = 86, control = 80, physical = 85},
-    {name = "Marquinhos Aoás", role = "Defensa", posTag = "DEF", speed = 78, shot = 53, pass = 75, defense = 88, dribble = 74, stamina = 84, control = 80, physical = 82},
+    {name = "Marquinhos AoÃ¡s", role = "Defensa", posTag = "DEF", speed = 78, shot = 53, pass = 75, defense = 88, dribble = 74, stamina = 84, control = 80, physical = 82},
     {name = "Alessandro Bastoni", role = "Defensa", posTag = "DEF", speed = 75, shot = 50, pass = 82, defense = 87, dribble = 76, stamina = 83, control = 82, physical = 84},
-    {name = "Ronald Araújo", role = "Defensa", posTag = "DEF", speed = 84, shot = 50, pass = 66, defense = 87, dribble = 64, stamina = 84, control = 73, physical = 88},
-    {name = "Éder Militão", role = "Defensa", posTag = "DEF", speed = 85, shot = 52, pass = 70, defense = 86, dribble = 71, stamina = 85, control = 77, physical = 84},
-    {name = "Theo Hernández", role = "Defensa", posTag = "DEF", speed = 94, shot = 74, pass = 78, defense = 80, dribble = 84, stamina = 90, control = 82, physical = 84},
+    {name = "Ronald AraÃºjo", role = "Defensa", posTag = "DEF", speed = 84, shot = 50, pass = 66, defense = 87, dribble = 64, stamina = 84, control = 73, physical = 88},
+    {name = "Ã‰der MilitÃ£o", role = "Defensa", posTag = "DEF", speed = 85, shot = 52, pass = 70, defense = 86, dribble = 71, stamina = 85, control = 77, physical = 84},
+    {name = "Theo HernÃ¡ndez", role = "Defensa", posTag = "DEF", speed = 94, shot = 74, pass = 78, defense = 80, dribble = 84, stamina = 90, control = 82, physical = 84},
     {name = "Kyle Walker", role = "Defensa", posTag = "DEF", speed = 92, shot = 63, pass = 77, defense = 82, dribble = 78, stamina = 86, control = 79, physical = 84},
     {name = "Trent Alexander-Arnold", role = "Defensa", posTag = "DEF", speed = 78, shot = 76, pass = 91, defense = 76, dribble = 81, stamina = 85, control = 85, physical = 74},
     {name = "Dani Carvajal", role = "Defensa", posTag = "DEF", speed = 82, shot = 58, pass = 79, defense = 84, dribble = 80, stamina = 88, control = 82, physical = 82},
     {name = "Achraf Hakimi", role = "Defensa", posTag = "DEF", speed = 93, shot = 75, pass = 80, defense = 78, dribble = 83, stamina = 89, control = 82, physical = 78},
     {name = "Alphonso Davies", role = "Defensa", posTag = "DEF", speed = 95, shot = 68, pass = 78, defense = 76, dribble = 86, stamina = 86, control = 83, physical = 78},
-    {name = "Jules Koundé", role = "Defensa", posTag = "DEF", speed = 84, shot = 48, pass = 74, defense = 86, dribble = 75, stamina = 84, control = 79, physical = 81},
-    {name = "Gabriel Magalhães", role = "Defensa", posTag = "DEF", speed = 72, shot = 45, pass = 69, defense = 86, dribble = 65, stamina = 85, control = 74, physical = 87},
+    {name = "Jules KoundÃ©", role = "Defensa", posTag = "DEF", speed = 84, shot = 48, pass = 74, defense = 86, dribble = 75, stamina = 84, control = 79, physical = 81},
+    {name = "Gabriel MagalhÃ£es", role = "Defensa", posTag = "DEF", speed = 72, shot = 45, pass = 69, defense = 86, dribble = 65, stamina = 85, control = 74, physical = 87},
     {name = "Josko Gvardiol", role = "Defensa", posTag = "DEF", speed = 80, shot = 65, pass = 78, defense = 84, dribble = 79, stamina = 85, control = 81, physical = 85},
     {name = "Cristian Romero", role = "Defensa", posTag = "DEF", speed = 76, shot = 48, pass = 68, defense = 85, dribble = 66, stamina = 85, control = 73, physical = 86},
-    {name = "Lisandro Martínez", role = "Defensa", posTag = "DEF", speed = 76, shot = 55, pass = 80, defense = 84, dribble = 76, stamina = 84, control = 80, physical = 82},
+    {name = "Lisandro MartÃ­nez", role = "Defensa", posTag = "DEF", speed = 76, shot = 55, pass = 80, defense = 84, dribble = 76, stamina = 84, control = 80, physical = 82},
     {name = "Federico Dimarco", role = "Defensa", posTag = "DEF", speed = 82, shot = 76, pass = 85, defense = 77, dribble = 81, stamina = 86, control = 84, physical = 74},
 
     -- PORTEROS (GK)
     {name = "Thibaut Courtois", role = "Portero", posTag = "GK", speed = 55, shot = 35, pass = 74, defense = 91, dribble = 50, stamina = 80, control = 78, physical = 86},
     {name = "Alisson Becker", role = "Portero", posTag = "GK", speed = 58, shot = 35, pass = 85, defense = 90, dribble = 55, stamina = 82, control = 82, physical = 85},
-    {name = "Marc-André ter Stegen", role = "Portero", posTag = "GK", speed = 56, shot = 32, pass = 88, defense = 89, dribble = 54, stamina = 80, control = 83, physical = 80},
+    {name = "Marc-AndrÃ© ter Stegen", role = "Portero", posTag = "GK", speed = 56, shot = 32, pass = 88, defense = 89, dribble = 54, stamina = 80, control = 83, physical = 80},
     {name = "Ederson Moraes", role = "Portero", posTag = "GK", speed = 64, shot = 40, pass = 93, defense = 88, dribble = 65, stamina = 82, control = 85, physical = 82},
     {name = "Jan Oblak", role = "Portero", posTag = "GK", speed = 54, shot = 30, pass = 72, defense = 90, dribble = 48, stamina = 80, control = 77, physical = 84},
     {name = "Mike Maignan", role = "Portero", posTag = "GK", speed = 58, shot = 33, pass = 84, defense = 88, dribble = 56, stamina = 82, control = 81, physical = 83},
     {name = "Gianluigi Donnarumma", role = "Portero", posTag = "GK", speed = 54, shot = 30, pass = 75, defense = 89, dribble = 50, stamina = 80, control = 78, physical = 86},
-    {name = "Emiliano Martínez", role = "Portero", posTag = "GK", speed = 56, shot = 33, pass = 80, defense = 88, dribble = 52, stamina = 83, control = 80, physical = 85},
+    {name = "Emiliano MartÃ­nez", role = "Portero", posTag = "GK", speed = 56, shot = 33, pass = 80, defense = 88, dribble = 52, stamina = 83, control = 80, physical = 85},
     {name = "Yassine Bounou", role = "Portero", posTag = "GK", speed = 55, shot = 30, pass = 77, defense = 86, dribble = 52, stamina = 80, control = 78, physical = 82},
     {name = "David Raya", role = "Portero", posTag = "GK", speed = 60, shot = 35, pass = 86, defense = 85, dribble = 58, stamina = 82, control = 82, physical = 78}
 }
@@ -374,19 +381,19 @@ function TeamsData.CalculateRarity(p)
     p.overall = overall
     if overall >= 88 then
         p.rarity = "Diamante"
-        p.rarityIcon = "◆"
+        p.rarityIcon = "â—†"
         p.rarityColor = Color3.fromRGB(0, 200, 255)
     elseif overall >= 80 then
         p.rarity = "Oro"
-        p.rarityIcon = "★"
+        p.rarityIcon = "â˜…"
         p.rarityColor = Color3.fromRGB(255, 215, 0)
     elseif overall >= 72 then
         p.rarity = "Plata"
-        p.rarityIcon = "●"
+        p.rarityIcon = "â—"
         p.rarityColor = Color3.fromRGB(205, 205, 215)
     else
         p.rarity = "Bronce"
-        p.rarityIcon = "●"
+        p.rarityIcon = "â—"
         p.rarityColor = Color3.fromRGB(195, 120, 60)
     end
     return p
@@ -401,18 +408,18 @@ end
 
 
 print("==========================================================================")
-print("[SERVIDOR] Futbol Total Avanzado: 10 Grandes Ligas, IA Táctica y Rarezas")
+print("[SERVIDOR] Futbol Total Avanzado: 10 Grandes Ligas, IA TÃ¡ctica y Rarezas")
 print("==========================================================================")
 
 --------------------------------------------------------------------------------
--- 1. CONFIGURACIÓN DE COLISIONES
+-- 1. CONFIGURACIÃ“N DE COLISIONES
 --------------------------------------------------------------------------------
 pcall(function()
     PhysicsService:RegisterCollisionGroup("CharactersGroup")
     PhysicsService:RegisterCollisionGroup("SoccerBallGroup")
     PhysicsService:CollisionGroupSetCollidable("SoccerBallGroup", "CharactersGroup", false)
     PhysicsService:CollisionGroupSetCollidable("SoccerBallGroup", "Default", true)
-    -- Los jugadores colisionan entre sí sólidamente para no traspasarse ni montarse unos sobre otros
+    -- Los jugadores colisionan entre sÃ­ sÃ³lidamente para no traspasarse ni montarse unos sobre otros
     PhysicsService:CollisionGroupSetCollidable("CharactersGroup", "CharactersGroup", true)
 end)
 
@@ -447,29 +454,29 @@ for _, p in ipairs(Players:GetPlayers()) do
 end
 
 --------------------------------------------------------------------------------
--- 2. CONSTRUCCIÓN DEL GRAN ESTADIO REGLAMENTARIO (300 x 200 STUDS)
+-- 2. CONSTRUCCIÃ“N DEL GRAN ESTADIO REGLAMENTARIO (300 x 200 STUDS)
 --------------------------------------------------------------------------------
 local FIELD_SIZE = Vector2.new(300, 200)
 local WALL_HEIGHT = 28
 local WALL_THICKNESS = 3
 
--- Portería: 22 studs de ancho por 12 studs de alto (medidas interiores)
+-- PorterÃ­a: 22 studs de ancho por 12 studs de alto (medidas interiores)
 local GOAL_WIDTH = 22
 local GOAL_HEIGHT = 12
 local GOAL_DEPTH = 14
 
--- Área grande (Penal): 50 studs de ancho por 25 studs de profundidad
+-- Ãrea grande (Penal): 50 studs de ancho por 25 studs de profundidad
 local PENALTY_AREA_DEPTH = 25
 local PENALTY_AREA_WIDTH = 50
 
--- Área pequeña (Meta): 20 studs de ancho por 10 studs de profundidad
+-- Ãrea pequeÃ±a (Meta): 20 studs de ancho por 10 studs de profundidad
 local GOAL_AREA_DEPTH = 10
 local GOAL_AREA_WIDTH = 20
 
--- Punto de penal: Ubicado a 35 studs de la línea de meta
+-- Punto de penal: Ubicado a 35 studs de la lÃ­nea de meta
 local PENALTY_SPOT_DIST = 35
 
--- Círculo central: Radio de 30 studs
+-- CÃ­rculo central: Radio de 30 studs
 local CENTER_CIRCLE_RADIUS = 30
 
 -- Margen exterior de 15 studs
@@ -516,7 +523,7 @@ local function createFieldLine(name: string, size: Vector3, position: Vector3): 
     return p
 end
 
--- Césped principal (300 x 200 studs) y margen exterior (15 studs a cada lado)
+-- CÃ©sped principal (300 x 200 studs) y margen exterior (15 studs a cada lado)
 createFieldPart("CespedePrincipal", Vector3.new(FIELD_SIZE.X, 1, FIELD_SIZE.Y), Vector3.new(0, 0, 0), Color3.fromRGB(38, 140, 52), Enum.Material.Grass)
 createFieldPart("BandaExterior", Vector3.new(FIELD_SIZE.X + (FIELD_MARGIN * 2), 0.95, FIELD_SIZE.Y + (FIELD_MARGIN * 2)), Vector3.new(0, -0.05, 0), Color3.fromRGB(32, 115, 42), Enum.Material.Grass)
 
@@ -531,7 +538,7 @@ createFieldLine("LineaFondoOeste", Vector3.new(lineThick, lineH, FIELD_SIZE.Y), 
 createFieldLine("LineaFondoEste", Vector3.new(lineThick, lineH, FIELD_SIZE.Y), Vector3.new(halfX, FIELD_Y, 0))
 createFieldLine("LineaCentro", Vector3.new(lineThick, lineH, FIELD_SIZE.Y), Vector3.new(0, FIELD_Y, 0))
 
--- AroCentralHueco con orientación CFrame en X = 90 grados
+-- AroCentralHueco con orientaciÃ³n CFrame en X = 90 grados
 local ringMeshPart = Instance.new("Part")
 ringMeshPart.Name = "AroCentralHueco"
 ringMeshPart.Size = Vector3.new(CENTER_CIRCLE_RADIUS * 2, lineH, CENTER_CIRCLE_RADIUS * 2)
@@ -560,7 +567,7 @@ centerDot.Anchored = true
 centerDot.CanCollide = false
 centerDot.Parent = pitchFolder
 
--- Arcos de córner en las 4 esquinas (radio de 3 studs)
+-- Arcos de cÃ³rner en las 4 esquinas (radio de 3 studs)
 local function makeCornerArc(name: string, posX: number, posZ: number)
     local corner = Instance.new("Part")
     corner.Name = name
@@ -631,7 +638,7 @@ end)
 local wallY = WALL_HEIGHT / 2
 local totalX = FIELD_SIZE.X + (FIELD_MARGIN * 2)
 local totalY = FIELD_SIZE.Y + (FIELD_MARGIN * 2)
--- Paredes de cristal eliminadas a petición del usuario para permitir juego abierto y saques reglamentarios (banda / córner)
+-- Paredes de cristal eliminadas a peticiÃ³n del usuario para permitir juego abierto y saques reglamentarios (banda / cÃ³rner)
 
 local function buildGoal(teamName: string, posX: number, primaryColor: Color3): Part
     local goalFolder = Instance.new("Folder")
@@ -676,7 +683,7 @@ local function buildGoal(teamName: string, posX: number, primaryColor: Color3): 
         n.Transparency = 0.45
         n.Anchored = true
         n.CanCollide = true
-        -- Propiedades físicas para atrapar el balón en la red (alta fricción y sin rebote)
+        -- Propiedades fÃ­sicas para atrapar el balÃ³n en la red (alta fricciÃ³n y sin rebote)
         n.CustomPhysicalProperties = PhysicalProperties.new(1.0, 1.5, 0.0, 1.0, 1.0)
         n.Parent = goalFolder
     end
@@ -791,7 +798,7 @@ local function buildStadiumStands(clubAData, clubBData)
         end
     end
 
-    -- Gradas detrás de las porterías y esquinas (Este y Oeste)
+    -- Gradas detrÃ¡s de las porterÃ­as y esquinas (Este y Oeste)
     local function makeEndStand(sideX: number, club)
         local baseX = sideX
         local numTiers = 4
@@ -877,11 +884,11 @@ local function getWalkSpeedFromStat(speedStat: number): number
 end
 
 local function getStealRadiusFromStat(defenseStat: number): number
-    return 10.0 + (defenseStat / 100) * 6.0 -- 14 a 16 studs (defensa más contundente)
+    return 10.0 + (defenseStat / 100) * 6.0 -- 14 a 16 studs (defensa mÃ¡s contundente)
 end
 
 local function getStealCooldownFromStat(defenseStat: number): number
-    return 1.4 - (defenseStat / 100) * 0.8 -- 0.6s a 1.0s (recuperación rápida)
+    return 1.4 - (defenseStat / 100) * 0.8 -- 0.6s a 1.0s (recuperaciÃ³n rÃ¡pida)
 end
 
 local function getShotPowerMultiplier(shotStat: number): number
@@ -889,7 +896,7 @@ local function getShotPowerMultiplier(shotStat: number): number
 end
 
 --------------------------------------------------------------------------------
--- 6. VARIABLES DEL PARTIDO Y BALÓN
+-- 6. VARIABLES DEL PARTIDO Y BALÃ“N
 --------------------------------------------------------------------------------
 local BALL_SIZE = Vector3.new(1.6, 1.6, 1.6)
 local BALL_ATTACH_OFFSET = Vector3.new(0, -2.2, -1.9)
@@ -949,12 +956,12 @@ local function getFormattedGameMinute(): string
         local extraMin = math.max(0, math.round((matchGameSeconds - 90 * 60) / 60))
         return string.format("90+%d'", extraMin)
     else
-        return string.format("%d'", math.clamp(math.round(matchGameSeconds / 60), 0, 90))
+        return string.format("%d'", safeClamp(math.round(matchGameSeconds / 60), 0, 90))
     end
 end
 
 --------------------------------------------------------------------------------
--- 8. EFECTOS VISUALES DEL BALÓN
+-- 8. EFECTOS VISUALES DEL BALÃ“N
 --------------------------------------------------------------------------------
 local function igniteBallInFlames(duration: number)
     if not currentBall then return end
@@ -1023,7 +1030,7 @@ local function createAuraRing(character: Model, color: Color3): Part?
 end
 
 --------------------------------------------------------------------------------
--- 9. POSESIÓN Y SOLDADURA DEL BALÓN
+-- 9. POSESIÃ“N Y SOLDADURA DEL BALÃ“N
 --------------------------------------------------------------------------------
 local function releaseBall()
     if activeWeld then
@@ -1082,12 +1089,12 @@ local function attachBallToPlayer(character: Model)
 end
 
 --------------------------------------------------------------------------------
--- 10. FORMACIONES Y CONSTRUCCIÓN DE BOTS 11v11 CON RAREZA E ICONOS
+-- 10. FORMACIONES Y CONSTRUCCIÃ“N DE BOTS 11v11 CON RAREZA E ICONOS
 --------------------------------------------------------------------------------
 local teamBlueBots: { [string]: BotSlot } = {}
 local teamRedBots: { [string]: BotSlot } = {}
 
--- Formación 11v11: 4 Defensas, 3 Centrocampistas, 3 Delanteros + 1 Portero (4-3-3 clásico)
+-- FormaciÃ³n 11v11: 4 Defensas, 3 Centrocampistas, 3 Delanteros + 1 Portero (4-3-3 clÃ¡sico)
 local FORMATION_WEST: { [string]: { role: string, pos: Vector3 } } = {
     ["LB"]  = { role = "Defensa", pos = Vector3.new(-105, 3, -60) },
     ["CB1"] = { role = "Defensa", pos = Vector3.new(-120, 3, -20) },
@@ -1418,7 +1425,7 @@ local function spawnReferee(): Model
     hrp.CanCollide = false
     hrp.CFrame = CFrame.new(0, 3, 20)
 
-    -- Uniforme tradicional de árbitro (camiseta amarillo flúor / negro con silbato)
+    -- Uniforme tradicional de Ã¡rbitro (camiseta amarillo flÃºor / negro con silbato)
     local torso = makePart("Torso", Vector3.new(2, 2, 1), Color3.fromRGB(240, 240, 20))
     local head = makePart("Head", Vector3.new(1.25, 1.25, 1.25), Color3.fromRGB(240, 200, 160))
     local headMesh = Instance.new("SpecialMesh")
@@ -1464,7 +1471,7 @@ local function spawnReferee(): Model
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Text = "⚖️ ÁRBITRO"
+    label.Text = "âš–ï¸ ÃRBITRO"
     label.TextColor3 = Color3.fromRGB(255, 235, 50)
     label.Font = Enum.Font.GothamBold
     label.TextSize = 14
@@ -1559,11 +1566,11 @@ local function spawnFull6v6Match()
 
     spawnReferee()
 
-    print("[SERVIDOR] ¡11v11 jugadores, porteros y Árbitro listos en el campo!")
+    print("[SERVIDOR] Â¡11v11 jugadores, porteros y Ãrbitro listos en el campo!")
 end
 
 --------------------------------------------------------------------------------
--- 12. SPAWN DEL BALÓN Y GESTIÓN DE GOLES CON ANUNCIO DETALLADO
+-- 12. SPAWN DEL BALÃ“N Y GESTIÃ“N DE GOLES CON ANUNCIO DETALLADO
 --------------------------------------------------------------------------------
 local function spawnBall(spawnCFrame: CFrame)
     if currentBall and currentBall.Parent then
@@ -1709,7 +1716,7 @@ local function onGoalScored(goalSide: string)
 
     releaseBall()
 
-    -- Enganchar el balón dentro de la red amortiguando su velocidad
+    -- Enganchar el balÃ³n dentro de la red amortiguando su velocidad
     if currentBall then
         currentBall.AssemblyLinearVelocity = currentBall.AssemblyLinearVelocity * 0.1
         currentBall.AssemblyAngularVelocity = Vector3.zero
@@ -1769,7 +1776,7 @@ releaseShotEvent.OnServerEvent:Connect(function(player, clientAimDirection: Vect
 
     local startTime = serverChargeStartTime or os.clock()
     local elapsed = os.clock() - startTime
-    local powerRatio = math.clamp(elapsed / MAX_CHARGE_DURATION, 0.01, 1.0)
+    local powerRatio = safeClamp(elapsed / MAX_CHARGE_DURATION, 0.01, 1.0)
 
     local hrp = char:FindFirstChild("HumanoidRootPart") :: BasePart?
     local shootDir: Vector3
@@ -1961,16 +1968,16 @@ local function executePass(passerSlot: BotSlot, targetSlot: BotSlot, passType: s
     local liftY = 2
 
     if passType == "short_ground" then
-        passSpeed = math.clamp(dist * 1.3, 40, 68)
+        passSpeed = safeClamp(dist * 1.3, 40, 68)
         liftY = 2
     elseif passType == "medium_ground" then
-        passSpeed = math.clamp(dist * 1.4, 55, 82)
+        passSpeed = safeClamp(dist * 1.4, 55, 82)
         liftY = 4
     elseif passType == "lofted" then
-        passSpeed = math.clamp(dist * 1.35, 70, 105)
+        passSpeed = safeClamp(dist * 1.35, 70, 105)
         liftY = math.random(18, 26)
     elseif passType == "through_ball" then
-        passSpeed = math.clamp(dist * 1.5, 65, 95)
+        passSpeed = safeClamp(dist * 1.5, 65, 95)
         liftY = 3.5
     elseif passType == "cross" then
         passSpeed = math.random(85, 115)
@@ -2030,7 +2037,7 @@ local function evaluateShotOpportunity(
     if dist > tactic.maxShotRange then return false end
 
     local lateralOffset = math.abs(hrp.Position.Z)
-    local angleScore = math.clamp(1 - (lateralOffset / (GOAL_WIDTH * 1.1)), 0.1, 1.0)
+    local angleScore = safeClamp(1 - (lateralOffset / (GOAL_WIDTH * 1.1)), 0.1, 1.0)
 
     local toGoalDir = (enemyGoalPos - hrp.Position).Unit
     local blockers = 0
@@ -2064,7 +2071,7 @@ local function evaluateShotOpportunity(
 end
 
 --------------------------------------------------------------------------------
--- 15. POSICIONAMIENTO TÁCTICO POR ROL Y TRANSICIONES
+-- 15. POSICIONAMIENTO TÃCTICO POR ROL Y TRANSICIONES
 --------------------------------------------------------------------------------
 local function getTacticalPosition(
     slot: BotSlot,
@@ -2082,7 +2089,7 @@ local function getTacticalPosition(
 
     if role == "Delantero" then
         if hasTeamPossession then
-            -- DESMARQUES Y LÍNEA OFENSIVA
+            -- DESMARQUES Y LÃNEA OFENSIVA
             -- Si es delantero centro (ST), busca desmarcarse al espacio a la espalda de centrales
             -- Si es extremo (LW / RW), busca abrir campo a banda o diagonal al segundo palo
             local roleId = slot.roleId
@@ -2092,31 +2099,31 @@ local function getTacticalPosition(
             if roleId == "ST" then
                 -- Desmarque en profundidad o arrastre hacia espacio libre
                 local offsideLimitX = (halfX - 26) * attackDirX
-                local leadX = math.clamp(ballPos.X + (38 * attackDirX), -halfX + 30, halfX - 30)
-                -- Buscar el lado opuesto al balón para desmarque al hueco
+                local leadX = safeClamp(ballPos.X + (38 * attackDirX), -halfX + 30, halfX - 30)
+                -- Buscar el lado opuesto al balÃ³n para desmarque al hueco
                 targetZ = if ballPos.Z > 10 then -18 elseif ballPos.Z < -10 then 18 else (if math.sin(os.clock() * 1.5) > 0 then 15 else -15)
                 return Vector3.new(leadX, 3, targetZ)
             elseif roleId == "LW" then
-                -- Extremo izquierdo pegado a banda para desbordar y centrar (amplitud máxima)
+                -- Extremo izquierdo pegado a banda para desbordar y centrar (amplitud mÃ¡xima)
                 targetZ = 78
                 local minX = math.min(-halfX + 45, (halfX - 25) * attackDirX)
                 local maxX = math.max(-halfX + 45, (halfX - 25) * attackDirX)
-                local advX = math.clamp(ballPos.X + (35 * attackDirX), minX, maxX)
+                local advX = safeClamp(ballPos.X + (35 * attackDirX), minX, maxX)
                 return Vector3.new(advX, 3, targetZ)
             elseif roleId == "RW" then
-                -- Extremo derecho pegado a banda para desbordar y centrar (amplitud máxima)
+                -- Extremo derecho pegado a banda para desbordar y centrar (amplitud mÃ¡xima)
                 targetZ = -78
                 local minX = math.min(-halfX + 45, (halfX - 25) * attackDirX)
                 local maxX = math.max(-halfX + 45, (halfX - 25) * attackDirX)
-                local advX = math.clamp(ballPos.X + (35 * attackDirX), minX, maxX)
+                local advX = safeClamp(ballPos.X + (35 * attackDirX), minX, maxX)
                 return Vector3.new(advX, 3, targetZ)
             else
                 local attackX = (halfX - 30) * attackDirX
-                local flankZ = math.clamp(ballPos.Z * 0.6, -35, 35)
+                local flankZ = safeClamp(ballPos.Z * 0.6, -35, 35)
                 return Vector3.new(attackX, 3, flankZ)
             end
         elseif hasEnemyPossession then
-            return Vector3.new(18 * attackDirX, 3, math.clamp(ballPos.Z * 0.35, -35, 35))
+            return Vector3.new(18 * attackDirX, 3, safeClamp(ballPos.Z * 0.35, -35, 35))
         else
             return Vector3.new(35 * attackDirX, 3, base.Z * 0.5)
         end
@@ -2124,20 +2131,20 @@ local function getTacticalPosition(
     elseif role == "Central" then
         if hasTeamPossession then
             if slot.roleId == "CDM" then
-                -- Pivote de apoyo seguro detrás de la línea de pase
+                -- Pivote de apoyo seguro detrÃ¡s de la lÃ­nea de pase
                 local safeX = (ballPos.X * 0.5) + (10 * attackDirX)
-                local safeZ = math.clamp(ballPos.Z * 0.35, -25, 25)
-                return Vector3.new(math.clamp(safeX, -halfX + 60, halfX - 60), 3, safeZ)
+                local safeZ = safeClamp(ballPos.Z * 0.35, -25, 25)
+                return Vector3.new(safeClamp(safeX, -halfX + 60, halfX - 60), 3, safeZ)
             else
-                -- Interiores (CM1, CM2): se abren activamente para ofrecer línea de pase limpia
+                -- Interiores (CM1, CM2): se abren activamente para ofrecer lÃ­nea de pase limpia
                 local advancedX = (ballPos.X * 0.6) + (35 * attackDirX)
                 local sideOffset = if slot.roleId == "CM1" then 32 else -32
-                -- Si el portador está en el mismo cuadrante Z, abrirse hacia la banda libre
+                -- Si el portador estÃ¡ en el mismo cuadrante Z, abrirse hacia la banda libre
                 local laneZ = sideOffset
                 if math.abs(ballPos.Z - sideOffset) < 18 then
                     laneZ = sideOffset + (if sideOffset > 0 then 18 else -18)
                 end
-                return Vector3.new(math.clamp(advancedX, -halfX + 75, halfX - 45), 3, math.clamp(laneZ, -75, 75))
+                return Vector3.new(safeClamp(advancedX, -halfX + 75, halfX - 45), 3, safeClamp(laneZ, -75, 75))
             end
         elseif hasEnemyPossession then
             local ownGoalX = -enemyGoalPos.X
@@ -2150,7 +2157,7 @@ local function getTacticalPosition(
     elseif role == "Defensa" then
         if hasEnemyPossession then
             local ownGoalX = -enemyGoalPos.X
-            -- Los laterales (LB, RB) vigilan sus bandas y entran a tapar si el balón o un extremo rival está abierto
+            -- Los laterales (LB, RB) vigilan sus bandas y entran a tapar si el balÃ³n o un extremo rival estÃ¡ abierto
             if slot.roleId == "LB" or slot.roleId == "RB" then
                 local defLineX = ownGoalX + (55 * attackDirX)
                 local trackZ = if math.abs(ballPos.Z - base.Z) < 35 then ballPos.Z else base.Z
@@ -2158,13 +2165,13 @@ local function getTacticalPosition(
             else
                 -- Los centrales (CB1, CB2) forman el embudo central
                 local defLineX = ownGoalX + (42 * attackDirX)
-                local shiftedZ = math.clamp(base.Z + (ballPos.Z * 0.35), -38, 38)
+                local shiftedZ = safeClamp(base.Z + (ballPos.Z * 0.35), -38, 38)
                 return Vector3.new(defLineX, 3, shiftedZ)
             end
         elseif hasTeamPossession then
             -- Laterales (LB, RB) doblan por la banda y ofrecen salida activa
             if slot.roleId == "LB" or slot.roleId == "RB" then
-                local wingX = math.clamp(ballPos.X - (5 * attackDirX), -halfX + 70, halfX - 40)
+                local wingX = safeClamp(ballPos.X - (5 * attackDirX), -halfX + 70, halfX - 40)
                 return Vector3.new(wingX, 3, base.Z)
             else
                 -- Centrales aseguran la retaguardia
@@ -2267,7 +2274,7 @@ local function updateBotSlotAI(
         end
     end
 
-    -- 1. POSESIÓN INDIVIDUAL
+    -- 1. POSESIÃ“N INDIVIDUAL
     if isOwner then
         local ownGoalX = -enemyGoalPos.X
         local distToOwnGoal = math.abs(hrp.Position.X - ownGoalX)
@@ -2341,14 +2348,14 @@ local function updateBotSlotAI(
         if nearestEnemyHrp and nearestEnemyDist < 26 then
             local toRival = nearestEnemyHrp.Position - hrp.Position
             if forwardDir:Dot(toRival.Unit) > 0.15 then
-                -- Opciones de regate según el stat de regate del jugador
+                -- Opciones de regate segÃºn el stat de regate del jugador
                 local perpLeft = Vector3.new(-forwardDir.Z, 0, forwardDir.X)
                 local perpRight = Vector3.new(forwardDir.Z, 0, -forwardDir.X)
                 
                 -- Si el defensor tiene velocidad lateral, amagar al lado contrario
                 local dodgeDir = if perpLeft:Dot(nearestEnemyHrp.AssemblyLinearVelocity) > 0 then perpRight else perpLeft
 
-                -- Si tiene buen regate (>= 80), realiza cambio de ritmo / aceleración explosiva
+                -- Si tiene buen regate (>= 80), realiza cambio de ritmo / aceleraciÃ³n explosiva
                 local normalSpeed = getWalkSpeedFromStat(botStats.speed)
                 if botStats.dribble >= 80 then
                     humanoid.WalkSpeed = normalSpeed * 1.25
@@ -2367,32 +2374,32 @@ local function updateBotSlotAI(
         return
     end
 
-    -- 2. BLOQUE DEFENSIVO O PRESIÓN
+    -- 2. BLOQUE DEFENSIVO O PRESIÃ“N
     if isEnemyOwner then
         local stealRadius = getStealRadiusFromStat(botStats.defense)
         local stealCooldown = getStealCooldownFromStat(botStats.defense)
 
         if designatedPresser == slot and currentOwner then
-            -- Solo el presser designado va a por el balón agresivamente
+            -- Solo el presser designado va a por el balÃ³n agresivamente
             local carrierHrp = currentOwner:FindFirstChild("HumanoidRootPart") :: BasePart?
             if carrierHrp then
                 humanoid:MoveTo(carrierHrp.Position)
                 if (carrierHrp.Position - hrp.Position).Magnitude < stealRadius and (now - slot.lastStealTime >= stealCooldown) and not isKickOnCooldown then
                     slot.lastStealTime = now
                     
-                    -- DUELO TÁCTICO: PROBABILIDAD DE ROBO VS REGATE
+                    -- DUELO TÃCTICO: PROBABILIDAD DE ROBO VS REGATE
                     local carrierStats = characterStats[currentOwner]
                     local carrierDribble = if carrierStats then carrierStats.dribble else 70
                     local defenderDef = botStats.defense
 
-                    -- Probabilidad calculada según los atributos reales
-                    local stealChance = math.clamp(50 + (defenderDef - carrierDribble) * 1.1, 20, 85)
+                    -- Probabilidad calculada segÃºn los atributos reales
+                    local stealChance = safeClamp(50 + (defenderDef - carrierDribble) * 1.1, 20, 85)
                     local roll = math.random(1, 100)
 
                     if roll <= stealChance then
                         attachBallToPlayer(bot)
                     else
-                        -- El atacante supera la entrada con un regate exitoso (pequeño boost de evasión)
+                        -- El atacante supera la entrada con un regate exitoso (pequeÃ±o boost de evasiÃ³n)
                         isKickOnCooldown = true
                         task.delay(0.35, function() isKickOnCooldown = false end)
                     end
@@ -2404,14 +2411,14 @@ local function updateBotSlotAI(
             local ownGoalX = -enemyGoalPos.X
             local distToOurGoal = math.abs(hrp.Position.X - ownGoalX)
 
-            -- 1. Si el rival con balón se acerca peligrosamente a la frontal (menos de 55 studs de la portería o 30 studs del defensa), entra a tapar/robar
+            -- 1. Si el rival con balÃ³n se acerca peligrosamente a la frontal (menos de 55 studs de la porterÃ­a o 30 studs del defensa), entra a tapar/robar
             if (slot.role == "Defensa" or slot.roleId == "CDM") and distToBall < 38 then
                 humanoid:MoveTo(ballPos)
                 if distToBall < stealRadius and (now - slot.lastStealTime >= stealCooldown) and not isKickOnCooldown then
                     slot.lastStealTime = now
                     local carrierStats = characterStats[currentOwner]
                     local carrierDribble = if carrierStats then carrierStats.dribble else 70
-                    local stealChance = math.clamp(50 + (botStats.defense - carrierDribble) * 1.1, 20, 85)
+                    local stealChance = safeClamp(50 + (botStats.defense - carrierDribble) * 1.1, 20, 85)
                     if math.random(1, 100) <= stealChance then
                         attachBallToPlayer(bot)
                     end
@@ -2425,9 +2432,9 @@ local function updateBotSlotAI(
             if assignedOpp and assignedOpp.model and assignedOpp.model.Parent then
                 local oppHrp = assignedOpp.model:FindFirstChild("HumanoidRootPart") :: BasePart?
                 if oppHrp then
-                    -- Posición de marca: entre el adversario y nuestra portería, pegado a 4.0 studs
+                    -- PosiciÃ³n de marca: entre el adversario y nuestra porterÃ­a, pegado a 4.0 studs
                     local toOwnGoal = (Vector3.new(ownGoalX, 3, 0) - oppHrp.Position).Unit
-                    -- Anticipar movimiento del rival según su velocidad lineal
+                    -- Anticipar movimiento del rival segÃºn su velocidad lineal
                     local oppVel = oppHrp.AssemblyLinearVelocity
                     local leadVector = Vector3.new(oppVel.X, 0, oppVel.Z) * 0.25
                     local markPosition = oppHrp.Position + (toOwnGoal * 4.0) + leadVector
@@ -2436,18 +2443,18 @@ local function updateBotSlotAI(
                 end
             end
 
-            -- Si no tiene marca directa, mantener la formación táctica
+            -- Si no tiene marca directa, mantener la formaciÃ³n tÃ¡ctica
             local tacticalPos = getTacticalPosition(slot, false, true, ballPos, enemyGoalPos)
             humanoid:MoveTo(tacticalPos)
             return
         end
     end
 
-    -- 3. BALÓN SUELTO
+    -- 3. BALÃ“N SUELTO
     if currentOwner == nil and currentBall then
         local stealRadius = getStealRadiusFromStat(botStats.defense)
 
-        -- Solo acude el presser designado o si el balón está muy pegado (< 20 studs)
+        -- Solo acude el presser designado o si el balÃ³n estÃ¡ muy pegado (< 20 studs)
         if designatedPresser == slot or distToBall < 20 then
             local bVel = currentBall.AssemblyLinearVelocity
             local interceptPos = if bVel.Magnitude > 10 then ballPos + Vector3.new(bVel.X, 0, bVel.Z) * 0.4 else ballPos
@@ -2464,7 +2471,7 @@ local function updateBotSlotAI(
         end
     end
 
-    -- 4. APOYO AL COMPAÑERO EN ATAQUE
+    -- 4. APOYO AL COMPAÃ‘ERO EN ATAQUE
     if isAllyOwner then
         local tacticalPos = getTacticalPosition(slot, true, false, ballPos, enemyGoalPos)
         humanoid:MoveTo(tacticalPos)
@@ -2488,7 +2495,7 @@ local function runTeamCoordinator(
         if cHrp then targetItemPos = cHrp.Position end
     end
 
-    -- Si el rival avanza por el centro hacia nuestra portería, los centrales y el pivote tienen máxima prioridad para salir al paso
+    -- Si el rival avanza por el centro hacia nuestra porterÃ­a, los centrales y el pivote tienen mÃ¡xima prioridad para salir al paso
     local ownGoalX = -enemyGoalPos.X
     local distToOurGoal = math.abs(targetItemPos.X - ownGoalX)
 
@@ -2500,7 +2507,7 @@ local function runTeamCoordinator(
                 local dist = (hrp.Position - targetItemPos).Magnitude
                 local distWeight = dist
 
-                -- Si el portador viene por el centro hacia el área propia, CBs y CDM deben salir a frenarlo sin penalización
+                -- Si el portador viene por el centro hacia el Ã¡rea propia, CBs y CDM deben salir a frenarlo sin penalizaciÃ³n
                 if slot.roleId == "CDM" and math.abs(targetItemPos.Z) < 35 then
                     distWeight = distWeight * 0.7
                 elseif (slot.roleId == "CB1" or slot.roleId == "CB2") and distToOurGoal < 85 then
@@ -2523,7 +2530,7 @@ local function runTeamCoordinator(
 end
 
 --------------------------------------------------------------------------------
--- 17. IA DE PORTEROS (DISTRIBUCIÓN Y PARADAS)
+-- 17. IA DE PORTEROS (DISTRIBUCIÃ“N Y PARADAS)
 --------------------------------------------------------------------------------
 local function updateGoalkeeperAI(gk: Model?, goalX: number)
     if isMatchPaused or not gk or not gk.Parent or isGoalCelebrating then return end
@@ -2559,7 +2566,7 @@ local function updateGoalkeeperAI(gk: Model?, goalX: number)
         local reactionJitter = (math.sin(os.clock() * 5) * 0.4)
 
         if headingTowardsGoal then
-            local targetZ = math.clamp(predictedZ + reactionJitter, -(GOAL_WIDTH / 2 - 1.5), (GOAL_WIDTH / 2 - 1.5))
+            local targetZ = safeClamp(predictedZ + reactionJitter, -(GOAL_WIDTH / 2 - 1.5), (GOAL_WIDTH / 2 - 1.5))
             local distZ = math.abs(hrp.Position.Z - targetZ)
 
             local isBallHigh = (ballPos.Y > 6 or (ballVel.Y > 5 and timeToReach < 1.0))
@@ -2578,13 +2585,13 @@ local function updateGoalkeeperAI(gk: Model?, goalX: number)
         else
             local toBall = (ballPos - goalCenter)
             local flatDir = Vector3.new(toBall.X, 0, toBall.Z).Unit
-            local advance = math.clamp(toBall.Magnitude * 0.08, 0, 10)
+            local advance = safeClamp(toBall.Magnitude * 0.08, 0, 10)
             local targetPos = goalCenter + (flatDir * advance)
             
             targetPos = Vector3.new(
-                if isLeftGoal then math.clamp(targetPos.X, goalX, goalX + 11) else math.clamp(targetPos.X, goalX - 11, goalX),
+                if isLeftGoal then safeClamp(targetPos.X, goalX, goalX + 11) else safeClamp(targetPos.X, goalX - 11, goalX),
                 3,
-                math.clamp(targetPos.Z, -(GOAL_WIDTH / 2 - 2), (GOAL_WIDTH / 2 - 2))
+                safeClamp(targetPos.Z, -(GOAL_WIDTH / 2 - 2), (GOAL_WIDTH / 2 - 2))
             )
 
             humanoid.WalkSpeed = 26
@@ -2605,7 +2612,7 @@ local function handleGkCatch(gk: Model, teamName: string, posX: number)
 
     local ballSpeed = currentBall.AssemblyLinearVelocity.Magnitude
     if ballSpeed > 130 then
-        local failChance = math.clamp((ballSpeed - 130) * 1.5, 5, 25)
+        local failChance = safeClamp((ballSpeed - 130) * 1.5, 5, 25)
         if math.random(1, 100) <= failChance then
             local deflectDir = Vector3.new(if posX < 0 then 1 else -1, 0.4, (math.random() - 0.5) * 1.5).Unit
             currentBall.AssemblyLinearVelocity = deflectDir * (ballSpeed * 0.65)
@@ -2653,10 +2660,10 @@ local function handleGkCatch(gk: Model, teamName: string, posX: number)
                 unitDir = Vector3.new(toTarget.X, 0, toTarget.Z).Unit
                 local dist = toTarget.Magnitude
                 if dist < 65 then
-                    speed = math.clamp(dist * 1.35, 45, 75)
+                    speed = safeClamp(dist * 1.35, 45, 75)
                     liftY = 4
                 else
-                    speed = math.clamp(dist * 1.4, 70, 105)
+                    speed = safeClamp(dist * 1.4, 70, 105)
                     liftY = 18
                 end
             else
@@ -2706,7 +2713,7 @@ local function updateMatchClock()
         if curMinute >= 45 then
             currentMatchState = MATCH_STATE_FIRST_EXTRA
             firstHalfAddedMins = math.random(1, 10)
-            print(string.format("[PARTIDO] Tiempo añadido 1ra parte: +%d minutos", firstHalfAddedMins))
+            print(string.format("[PARTIDO] Tiempo aÃ±adido 1ra parte: +%d minutos", firstHalfAddedMins))
         else
             local timeText = string.format("%02d:%02d", curMinute, curSec)
             matchTimeEvent:FireAllClients(timeText, "PRIMERA PARTE", false)
@@ -2717,7 +2724,7 @@ local function updateMatchClock()
         local curMinute = math.floor(matchGameSeconds / 60)
         local curSec = math.floor(matchGameSeconds % 60)
         local timeText = string.format("45+%d' (%02d:%02d)", firstHalfAddedMins, curMinute, curSec)
-        matchTimeEvent:FireAllClients(timeText, "TIEMPO AÑADIDO", true)
+        matchTimeEvent:FireAllClients(timeText, "TIEMPO AÃ‘ADIDO", true)
 
         if curMinute >= (45 + firstHalfAddedMins) then
             currentMatchState = MATCH_STATE_HALFTIME
@@ -2725,13 +2732,13 @@ local function updateMatchClock()
             halftimeRealSecondsLeft = 60
             releaseBall()
 
-            -- El árbitro recoge el balón para el descanso
+            -- El Ã¡rbitro recoge el balÃ³n para el descanso
             if refereeModel and currentBall then
                 attachBallToPlayer(refereeModel)
                 local rHum = refereeModel:FindFirstChildOfClass("Humanoid")
                 if rHum then rHum:MoveTo(Vector3.new(0, 3, 25)) end
             end
-            print("[PARTIDO] ¡DESCANSO! El árbitro se lleva el balón a vestuarios.")
+            print("[PARTIDO] Â¡DESCANSO! El Ã¡rbitro se lleva el balÃ³n a vestuarios.")
         end
 
     elseif currentMatchState == MATCH_STATE_HALFTIME then
@@ -2754,7 +2761,7 @@ local function updateMatchClock()
 
             resetPositionsToField()
             spawnBall(CFrame.new(0, 2.5, 0))
-            print("[PARTIDO] ¡Comienza la Segunda Parte! Equipos cambian de lado.")
+            print("[PARTIDO] Â¡Comienza la Segunda Parte! Equipos cambian de lado.")
         end
 
     elseif currentMatchState == MATCH_STATE_SECOND_HALF then
@@ -2765,7 +2772,7 @@ local function updateMatchClock()
         if curMinute >= 90 then
             currentMatchState = MATCH_STATE_SECOND_EXTRA
             secondHalfAddedMins = math.random(1, 10)
-            print(string.format("[PARTIDO] Tiempo añadido 2da parte: +%d minutos", secondHalfAddedMins))
+            print(string.format("[PARTIDO] Tiempo aÃ±adido 2da parte: +%d minutos", secondHalfAddedMins))
         else
             local timeText = string.format("%02d:%02d", curMinute, curSec)
             matchTimeEvent:FireAllClients(timeText, "SEGUNDA PARTE", false)
@@ -2776,7 +2783,7 @@ local function updateMatchClock()
         local curMinute = math.floor(matchGameSeconds / 60)
         local curSec = math.floor(matchGameSeconds % 60)
         local timeText = string.format("90+%d' (%02d:%02d)", secondHalfAddedMins, curMinute, curSec)
-        matchTimeEvent:FireAllClients(timeText, "TIEMPO AÑADIDO", true)
+        matchTimeEvent:FireAllClients(timeText, "TIEMPO AÃ‘ADIDO", true)
 
         if curMinute >= (90 + secondHalfAddedMins) then
             currentMatchState = MATCH_STATE_FULLTIME
@@ -2784,13 +2791,13 @@ local function updateMatchClock()
             fulltimeRealSecondsLeft = 60
             releaseBall()
 
-            -- El árbitro recoge el balón tras el pitido final
+            -- El Ã¡rbitro recoge el balÃ³n tras el pitido final
             if refereeModel and currentBall then
                 attachBallToPlayer(refereeModel)
                 local rHum = refereeModel:FindFirstChildOfClass("Humanoid")
                 if rHum then rHum:MoveTo(Vector3.new(0, 3, 25)) end
             end
-            print(string.format("[PARTIDO] ¡FINAL DEL PARTIDO! %s %d - %d %s. El árbitro se lleva el balón.", currentClubA.name, scoreBlue, scoreRed, currentClubB.name))
+            print(string.format("[PARTIDO] Â¡FINAL DEL PARTIDO! %s %d - %d %s. El Ã¡rbitro se lleva el balÃ³n.", currentClubA.name, scoreBlue, scoreRed, currentClubB.name))
         end
 
     elseif currentMatchState == MATCH_STATE_FULLTIME then
@@ -2811,7 +2818,7 @@ local function updateMatchClock()
             spawnFull6v6Match()
             resetPositionsToField()
             spawnBall(CFrame.new(0, 2.5, 0))
-            print("[PARTIDO] Nuevo encuentro iniciado automáticamente (00:00).")
+            print("[PARTIDO] Nuevo encuentro iniciado automÃ¡ticamente (00:00).")
         end
     end
 end
@@ -2845,7 +2852,7 @@ RunService.Heartbeat:Connect(function()
 
     local now = os.clock()
 
-    -- CONTROL REGLAMENTARIO DE LÍMITES: SAQUES DE BANDA Y CÓRNERS
+    -- CONTROL REGLAMENTARIO DE LÃMITES: SAQUES DE BANDA Y CÃ“RNERS
     if currentBall and not isGoalCelebrating and isMatchStarted then
         local bPos = currentBall.Position
         local outOfBounds = false
@@ -2853,21 +2860,21 @@ RunService.Heartbeat:Connect(function()
         local isCorner = false
         local restartPos = Vector3.new(0, 2.5, 0)
 
-        -- 1. Saque de Banda (Líneas Norte y Sur)
+        -- 1. Saque de Banda (LÃ­neas Norte y Sur)
         if math.abs(bPos.Z) > (halfY + 2) then
             outOfBounds = true
             isSideline = true
-            local restartX = math.clamp(bPos.X, -halfX + 10, halfX - 10)
+            local restartX = safeClamp(bPos.X, -halfX + 10, halfX - 10)
             local restartZ = if bPos.Z > 0 then (halfY - 4) else (-halfY + 4)
             restartPos = Vector3.new(restartX, 2.5, restartZ)
 
-        -- 2. Fondo / Córner (Líneas Este y Oeste fuera de portería)
+        -- 2. Fondo / CÃ³rner (LÃ­neas Este y Oeste fuera de porterÃ­a)
         elseif math.abs(bPos.X) > (halfX + 2) then
-            -- Solo si no es gol (si no está dentro del marco de la portería)
+            -- Solo si no es gol (si no estÃ¡ dentro del marco de la porterÃ­a)
             if math.abs(bPos.Z) > (GOAL_WIDTH / 2 + 1) or bPos.Y > (GOAL_HEIGHT + 1) then
                 outOfBounds = true
                 isCorner = true
-                -- Ubicar en el córner más cercano
+                -- Ubicar en el cÃ³rner mÃ¡s cercano
                 local cornerX = if bPos.X > 0 then (halfX - 4) else (-halfX + 4)
                 local cornerZ = if bPos.Z > 0 then (halfY - 4) else (-halfY + 4)
                 restartPos = Vector3.new(cornerX, 2.5, cornerZ)
@@ -2878,17 +2885,17 @@ RunService.Heartbeat:Connect(function()
             releaseBall()
             isKickOnCooldown = true
 
-            -- Reubicar balón en el punto de saque
+            -- Reubicar balÃ³n en el punto de saque
             currentBall.AssemblyLinearVelocity = Vector3.zero
             currentBall.AssemblyAngularVelocity = Vector3.zero
             currentBall.CFrame = CFrame.new(restartPos)
 
-            -- Determinar a quién le toca sacar (al equipo contrario del que tocó por última vez)
+            -- Determinar a quiÃ©n le toca sacar (al equipo contrario del que tocÃ³ por Ãºltima vez)
             local lastWasRed = (lastToucherModel and string.find(lastToucherModel.Name, "Rojo") ~= nil)
             local awardTeam = if lastWasRed then "Azul" else "Rojo"
             local awardBots = if awardTeam == "Azul" then teamBlueBots else teamRedBots
 
-            -- Encontrar el bot más cercano al punto de saque para ejecutarlo
+            -- Encontrar el bot mÃ¡s cercano al punto de saque para ejecutarlo
             local takerSlot: BotSlot? = nil
             local minTakerDist = 9999
             for _, slot in pairs(awardBots) do
@@ -2920,9 +2927,9 @@ RunService.Heartbeat:Connect(function()
             end
 
             if isCorner then
-                print(string.format("[REGLAMENTO] ¡CÓRNER para el equipo %s!", awardTeam))
+                print(string.format("[REGLAMENTO] Â¡CÃ“RNER para el equipo %s!", awardTeam))
             elseif isSideline then
-                print(string.format("[REGLAMENTO] ¡SAQUE DE BANDA para el equipo %s!", awardTeam))
+                print(string.format("[REGLAMENTO] Â¡SAQUE DE BANDA para el equipo %s!", awardTeam))
             end
         end
     end
@@ -2937,13 +2944,13 @@ RunService.Heartbeat:Connect(function()
         runTeamCoordinator(teamBlueBots, teamRedBots, blueTargetGoal, redGkPos, now)
         runTeamCoordinator(teamRedBots, teamBlueBots, redTargetGoal, blueGkPos, now)
 
-        -- IA del Árbitro en juego: sigue la acción manteniéndose en diagonal a una distancia neutral
+        -- IA del Ãrbitro en juego: sigue la acciÃ³n manteniÃ©ndose en diagonal a una distancia neutral
         if refereeModel and refereeModel.Parent and currentBall then
             local refHrp = refereeModel:FindFirstChild("HumanoidRootPart") :: BasePart?
             local refHum = refereeModel:FindFirstChildOfClass("Humanoid")
             if refHrp and refHum then
                 local bPos = currentBall.Position
-                -- Se coloca a unos 22 studs en diagonal al balón sin obstaculizar las jugadas
+                -- Se coloca a unos 22 studs en diagonal al balÃ³n sin obstaculizar las jugadas
                 local refTarget = Vector3.new(bPos.X * 0.85, 3, bPos.Z * 0.4 + (if bPos.Z > 0 then -22 else 22))
                 refHum:MoveTo(refTarget)
             end
@@ -3051,7 +3058,7 @@ toggleMatchEvent.OnServerEvent:Connect(function(player)
         isMatchStarted = false
         isMatchPaused = true
         matchTimeEvent:FireAllClients("00:00", "EN ESPERA", false)
-        print("[SERVIDOR] Partido detenido desde botón de interfaz.")
+        print("[SERVIDOR] Partido detenido desde botÃ³n de interfaz.")
     end
 end)
 
