@@ -1922,7 +1922,9 @@ local function getTacticalPosition(
     hasTeamPossession: boolean,
     hasEnemyPossession: boolean,
     ballPos: Vector3,
-    enemyGoalPos: Vector3
+    enemyGoalPos: Vector3,
+    allyTeam: { [string]: BotSlot }?,
+    enemyTeam: { [string]: BotSlot }?
 ): Vector3
 
     local role = slot.role
@@ -1931,23 +1933,58 @@ local function getTacticalPosition(
 
     if role == "Delantero" then
         if hasTeamPossession then
-            local attackX = (halfX - 30) * attackDirX
-            local flankZ = math.clamp(ballPos.Z * 0.6, -35, 35)
-            return Vector3.new(attackX, 3, flankZ)
+            -- DESMARQUES Y LÍNEA OFENSIVA
+            -- Si es delantero centro (ST), busca desmarcarse al espacio a la espalda de centrales
+            -- Si es extremo (LW / RW), busca abrir campo a banda o diagonal al segundo palo
+            local roleId = slot.roleId
+            local baseZ = base.Z
+            local targetZ = baseZ
+
+            if roleId == "ST" then
+                -- Desmarque en profundidad o arrastre hacia espacio libre
+                local offsideLimitX = (halfX - 26) * attackDirX
+                local leadX = math.clamp(ballPos.X + (38 * attackDirX), -halfX + 30, halfX - 30)
+                -- Buscar el lado opuesto al balón para desmarque al hueco
+                targetZ = if ballPos.Z > 10 then -18 elseif ballPos.Z < -10 then 18 else (if math.sin(os.clock() * 1.5) > 0 then 15 else -15)
+                return Vector3.new(leadX, 3, targetZ)
+            elseif roleId == "LW" then
+                -- Extremo izquierdo pegado a banda o diagonal interior si el balón viene del centro
+                targetZ = if ballPos.Z > 20 then 68 else 48
+                local advX = math.clamp(ballPos.X + (30 * attackDirX), -halfX + 40, (halfX - 35) * attackDirX)
+                return Vector3.new(advX, 3, targetZ)
+            elseif roleId == "RW" then
+                -- Extremo derecho pegado a banda o diagonal interior
+                targetZ = if ballPos.Z < -20 then -68 else -48
+                local advX = math.clamp(ballPos.X + (30 * attackDirX), -halfX + 40, (halfX - 35) * attackDirX)
+                return Vector3.new(advX, 3, targetZ)
+            else
+                local attackX = (halfX - 30) * attackDirX
+                local flankZ = math.clamp(ballPos.Z * 0.6, -35, 35)
+                return Vector3.new(attackX, 3, flankZ)
+            end
         elseif hasEnemyPossession then
-            return Vector3.new(15 * attackDirX, 3, math.clamp(ballPos.Z * 0.3, -30, 30))
+            return Vector3.new(18 * attackDirX, 3, math.clamp(ballPos.Z * 0.35, -35, 35))
         else
-            return Vector3.new(35 * attackDirX, 3, 0)
+            return Vector3.new(35 * attackDirX, 3, base.Z * 0.5)
         end
 
     elseif role == "Central" then
         if hasTeamPossession then
             if slot.roleId == "CDM" then
-                local safeX = (ballPos.X * 0.4) + (25 * attackDirX)
-                return Vector3.new(math.clamp(safeX, -halfX + 70, halfX - 70), 3, base.Z * 0.5)
+                -- Pivote de apoyo seguro detrás de la línea de pase
+                local safeX = (ballPos.X * 0.5) + (10 * attackDirX)
+                local safeZ = math.clamp(ballPos.Z * 0.35, -25, 25)
+                return Vector3.new(math.clamp(safeX, -halfX + 60, halfX - 60), 3, safeZ)
             else
-                local advancedX = (ballPos.X * 0.65) + (50 * attackDirX)
-                return Vector3.new(math.clamp(advancedX, -halfX + 85, halfX - 85), 3, base.Z + (ballPos.Z * 0.15))
+                -- Interiores (CM1, CM2): se abren activamente para ofrecer línea de pase limpia
+                local advancedX = (ballPos.X * 0.6) + (35 * attackDirX)
+                local sideOffset = if slot.roleId == "CM1" then 32 else -32
+                -- Si el portador está en el mismo cuadrante Z, abrirse hacia la banda libre
+                local laneZ = sideOffset
+                if math.abs(ballPos.Z - sideOffset) < 18 then
+                    laneZ = sideOffset + (if sideOffset > 0 then 18 else -18)
+                end
+                return Vector3.new(math.clamp(advancedX, -halfX + 75, halfX - 45), 3, math.clamp(laneZ, -75, 75))
             end
         elseif hasEnemyPossession then
             local ownGoalX = -enemyGoalPos.X
@@ -1960,13 +1997,20 @@ local function getTacticalPosition(
     elseif role == "Defensa" then
         if hasEnemyPossession then
             local ownGoalX = -enemyGoalPos.X
-            local defLineX = ownGoalX + (50 * attackDirX)
-            local shiftedZ = math.clamp(base.Z + (ballPos.Z * 0.4), -95, 95)
+            local defLineX = ownGoalX + (45 * attackDirX)
+            local shiftedZ = math.clamp(base.Z + (ballPos.Z * 0.4), -85, 85)
             return Vector3.new(defLineX, 3, shiftedZ)
         elseif hasTeamPossession then
-            local ownGoalX = -enemyGoalPos.X
-            local advancedLineX = ownGoalX + (120 * attackDirX)
-            return Vector3.new(advancedLineX, 3, base.Z)
+            -- Laterales (LB, RB) suben por la banda para dar amplitud ofensiva
+            if slot.roleId == "LB" or slot.roleId == "RB" then
+                local wingX = math.clamp(ballPos.X - (15 * attackDirX), -halfX + 70, halfX - 60)
+                return Vector3.new(wingX, 3, base.Z)
+            else
+                -- Centrales aseguran la retaguardia
+                local ownGoalX = -enemyGoalPos.X
+                local safeLineX = ownGoalX + (95 * attackDirX)
+                return Vector3.new(safeLineX, 3, base.Z)
+            end
         else
             return base
         end
@@ -2069,20 +2113,46 @@ local function updateBotSlotAI(
         local forwardDir = (Vector3.new(enemyGoalPos.X, 0, enemyGoalPos.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).Unit
         local moveTarget = hrp.Position + (forwardDir * 35)
 
+        -- SISTEMA DE REGATES Y ENCARAR DEFENSAS (1v1 Dribbling Skill Moves)
+        local nearestEnemyDist = 999
+        local nearestEnemyHrp: BasePart? = nil
+
         for _, eSlot in pairs(enemyTeam) do
             if eSlot.model and eSlot.model.Parent then
                 local eHrp = eSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
                 if eHrp then
                     local toRival = eHrp.Position - hrp.Position
-                    if toRival.Magnitude < 24 and forwardDir:Dot(toRival.Unit) > 0.25 then
-                        local perpLeft = Vector3.new(-forwardDir.Z, 0, forwardDir.X)
-                        local perpRight = Vector3.new(forwardDir.Z, 0, -forwardDir.X)
-                        local dodgeDir = if perpLeft:Dot(eHrp.AssemblyLinearVelocity) > 0 then perpRight else perpLeft
-                        moveTarget = hrp.Position + ((forwardDir * 0.65 + dodgeDir * 0.35).Unit * 30)
-                        break
+                    if toRival.Magnitude < nearestEnemyDist then
+                        nearestEnemyDist = toRival.Magnitude
+                        nearestEnemyHrp = eHrp
                     end
                 end
             end
+        end
+
+        if nearestEnemyHrp and nearestEnemyDist < 26 then
+            local toRival = nearestEnemyHrp.Position - hrp.Position
+            if forwardDir:Dot(toRival.Unit) > 0.15 then
+                -- Opciones de regate según el stat de regate del jugador
+                local perpLeft = Vector3.new(-forwardDir.Z, 0, forwardDir.X)
+                local perpRight = Vector3.new(forwardDir.Z, 0, -forwardDir.X)
+                
+                -- Si el defensor tiene velocidad lateral, amagar al lado contrario
+                local dodgeDir = if perpLeft:Dot(nearestEnemyHrp.AssemblyLinearVelocity) > 0 then perpRight else perpLeft
+
+                -- Si tiene buen regate (>= 80), realiza cambio de ritmo / aceleración explosiva
+                local normalSpeed = getWalkSpeedFromStat(botStats.speed)
+                if botStats.dribble >= 80 then
+                    humanoid.WalkSpeed = normalSpeed * 1.25
+                else
+                    humanoid.WalkSpeed = normalSpeed
+                end
+
+                -- Finta / recorte hacia espacio libre
+                moveTarget = hrp.Position + ((forwardDir * 0.5 + dodgeDir * 0.7).Unit * 28)
+            end
+        else
+            humanoid.WalkSpeed = getWalkSpeedFromStat(botStats.speed)
         end
 
         humanoid:MoveTo(moveTarget)
