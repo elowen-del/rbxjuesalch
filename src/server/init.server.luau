@@ -412,6 +412,8 @@ pcall(function()
     PhysicsService:RegisterCollisionGroup("SoccerBallGroup")
     PhysicsService:CollisionGroupSetCollidable("SoccerBallGroup", "CharactersGroup", false)
     PhysicsService:CollisionGroupSetCollidable("SoccerBallGroup", "Default", true)
+    -- Los jugadores colisionan entre sí sólidamente para no traspasarse ni montarse unos sobre otros
+    PhysicsService:CollisionGroupSetCollidable("CharactersGroup", "CharactersGroup", true)
 end)
 
 local function setupCharacterCollision(character: Model)
@@ -629,15 +631,7 @@ end)
 local wallY = WALL_HEIGHT / 2
 local totalX = FIELD_SIZE.X + (FIELD_MARGIN * 2)
 local totalY = FIELD_SIZE.Y + (FIELD_MARGIN * 2)
-createFieldPart("MuroNorte", Vector3.new(totalX + WALL_THICKNESS*2, WALL_HEIGHT, WALL_THICKNESS), Vector3.new(0, wallY, -(totalY/2) - (WALL_THICKNESS/2)), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
-createFieldPart("MuroSur", Vector3.new(totalX + WALL_THICKNESS*2, WALL_HEIGHT, WALL_THICKNESS), Vector3.new(0, wallY, (totalY/2) + (WALL_THICKNESS/2)), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
-
-local sideWallLen = (totalY - GOAL_WIDTH) / 2
-local sideWallOffset = (GOAL_WIDTH + sideWallLen) / 2
-createFieldPart("MuroOesteArriba", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new(-(totalX/2) - (WALL_THICKNESS/2), wallY, -sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
-createFieldPart("MuroOesteAbajo", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new(-(totalX/2) - (WALL_THICKNESS/2), wallY, sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
-createFieldPart("MuroEsteArriba", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new((totalX/2) + (WALL_THICKNESS/2), wallY, -sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
-createFieldPart("MuroEsteAbajo", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new((totalX/2) + (WALL_THICKNESS/2), wallY, sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
+-- Paredes de cristal eliminadas a petición del usuario para permitir juego abierto y saques reglamentarios (banda / córner)
 
 local function buildGoal(teamName: string, posX: number, primaryColor: Color3): Part
     local goalFolder = Instance.new("Folder")
@@ -682,6 +676,8 @@ local function buildGoal(teamName: string, posX: number, primaryColor: Color3): 
         n.Transparency = 0.45
         n.Anchored = true
         n.CanCollide = true
+        -- Propiedades físicas para atrapar el balón en la red (alta fricción y sin rebote)
+        n.CustomPhysicalProperties = PhysicalProperties.new(1.0, 1.5, 0.0, 1.0, 1.0)
         n.Parent = goalFolder
     end
 
@@ -747,14 +743,38 @@ local function buildStadiumStands(clubAData, clubBData)
     standsFolder.Name = "StadiumStands"
     standsFolder.Parent = workspace
 
-    local function makeStand(sideZ: number, club)
+    local function spawnFanAt(xPos: number, yPos: number, zPos: number, club)
+        local fan = Instance.new("Part")
+        fan.Name = "Fan"
+        fan.Size = Vector3.new(2.0, 2.6, 1.4)
+        fan.Position = Vector3.new(xPos, yPos, zPos)
+        fan.Color = if math.random() > 0.4 then club.primaryColor else club.secondaryColor
+        fan.Material = Enum.Material.SmoothPlastic
+        fan.Anchored = true
+        fan.CanCollide = false
+        fan.Parent = standsFolder
+
+        local fanHead = Instance.new("Part")
+        fanHead.Name = "Head"
+        fanHead.Shape = Enum.PartType.Ball
+        fanHead.Size = Vector3.new(1.3, 1.3, 1.3)
+        fanHead.Position = Vector3.new(xPos, yPos + 1.9, zPos)
+        fanHead.Color = Color3.fromRGB(240, 200, 160)
+        fanHead.Material = Enum.Material.SmoothPlastic
+        fanHead.Anchored = true
+        fanHead.CanCollide = false
+        fanHead.Parent = standsFolder
+    end
+
+    -- Gradas laterales (Norte y Sur a lo largo de las bandas)
+    local function makeSideStand(sideZ: number, club)
         local baseZ = sideZ
-        local numTiers = 3
+        local numTiers = 4
         for tier = 1, numTiers do
             local tierPart = Instance.new("Part")
-            tierPart.Name = "Grada_" .. club.name .. "_T" .. tier
-            tierPart.Size = Vector3.new(FIELD_SIZE.X + 10, 3, 14)
-            tierPart.Position = Vector3.new(0, (tier - 1) * 3 + 1.5, baseZ + (math.sign(sideZ) * (tier - 1) * 12))
+            tierPart.Name = "GradaBanda_" .. club.name .. "_T" .. tier
+            tierPart.Size = Vector3.new(FIELD_SIZE.X + 30, 3, 15)
+            tierPart.Position = Vector3.new(0, (tier - 1) * 3 + 1.5, baseZ + (math.sign(sideZ) * (tier - 1) * 13))
             tierPart.Color = club.primaryColor
             tierPart.Material = Enum.Material.Concrete
             tierPart.Anchored = true
@@ -762,37 +782,45 @@ local function buildStadiumStands(clubAData, clubBData)
             tierPart.Parent = standsFolder
         end
 
-        for i = 1, 28 do
-            local xPos = -halfX + 15 + (i * 12.5) + math.random(-2, 2)
+        for i = 1, 35 do
+            local xPos = -halfX + 10 + (i * 8.5) + math.random(-1, 1)
             local tier = math.random(1, numTiers)
             local yPos = (tier - 1) * 3 + 3.2
-            local zPos = baseZ + (math.sign(sideZ) * (tier - 1) * 12) + math.random(-2, 2)
-
-            local fan = Instance.new("Part")
-            fan.Name = "Fan"
-            fan.Size = Vector3.new(1.8, 2.5, 1.2)
-            fan.Position = Vector3.new(xPos, yPos, zPos)
-            fan.Color = if math.random() > 0.4 then club.primaryColor else club.secondaryColor
-            fan.Material = Enum.Material.SmoothPlastic
-            fan.Anchored = true
-            fan.CanCollide = false
-            fan.Parent = standsFolder
-
-            local fanHead = Instance.new("Part")
-            fanHead.Name = "Head"
-            fanHead.Shape = Enum.PartType.Ball
-            fanHead.Size = Vector3.new(1.2, 1.2, 1.2)
-            fanHead.Position = Vector3.new(xPos, yPos + 1.8, zPos)
-            fanHead.Color = Color3.fromRGB(240, 200, 160)
-            fanHead.Material = Enum.Material.SmoothPlastic
-            fanHead.Anchored = true
-            fanHead.CanCollide = false
-            fanHead.Parent = standsFolder
+            local zPos = baseZ + (math.sign(sideZ) * (tier - 1) * 13) + math.random(-1, 1)
+            spawnFanAt(xPos, yPos, zPos, club)
         end
     end
 
-    makeStand(-halfY - 16, clubAData)
-    makeStand(halfY + 16, clubBData)
+    -- Gradas detrás de las porterías y esquinas (Este y Oeste)
+    local function makeEndStand(sideX: number, club)
+        local baseX = sideX
+        local numTiers = 4
+        for tier = 1, numTiers do
+            local tierPart = Instance.new("Part")
+            tierPart.Name = "GradaGol_" .. club.name .. "_T" .. tier
+            tierPart.Size = Vector3.new(15, 3, FIELD_SIZE.Y + 40)
+            tierPart.Position = Vector3.new(baseX + (math.sign(sideX) * (tier - 1) * 13), (tier - 1) * 3 + 1.5, 0)
+            tierPart.Color = club.secondaryColor
+            tierPart.Material = Enum.Material.Concrete
+            tierPart.Anchored = true
+            tierPart.CanCollide = true
+            tierPart.Parent = standsFolder
+        end
+
+        for i = 1, 28 do
+            local zPos = -halfY + 8 + (i * 7.5) + math.random(-1, 1)
+            local tier = math.random(1, numTiers)
+            local yPos = (tier - 1) * 3 + 3.2
+            local xPos = baseX + (math.sign(sideX) * (tier - 1) * 13) + math.random(-1, 1)
+            spawnFanAt(xPos, yPos, zPos, club)
+        end
+    end
+
+    -- 4 Lados completos con esquinas cubiertas
+    makeSideStand(-halfY - 20, clubAData)
+    makeSideStand(halfY + 20, clubBData)
+    makeEndStand(-halfX - 22, clubAData)
+    makeEndStand(halfX + 22, clubBData)
 end
 
 --------------------------------------------------------------------------------
@@ -1597,7 +1625,13 @@ local function onGoalScored(goalSide: string)
 
     releaseBall()
 
-    task.delay(2.0, function()
+    -- Enganchar el balón dentro de la red amortiguando su velocidad
+    if currentBall then
+        currentBall.AssemblyLinearVelocity = currentBall.AssemblyLinearVelocity * 0.1
+        currentBall.AssemblyAngularVelocity = Vector3.zero
+    end
+
+    task.delay(2.5, function()
         resetPositionsToField()
         spawnBall(CFrame.new(0, 2.5, 0))
         isGoalCelebrating = false
@@ -2206,7 +2240,23 @@ local function updateBotSlotAI(
                 humanoid:MoveTo(carrierHrp.Position)
                 if (carrierHrp.Position - hrp.Position).Magnitude < stealRadius and (now - slot.lastStealTime >= stealCooldown) and not isKickOnCooldown then
                     slot.lastStealTime = now
-                    attachBallToPlayer(bot)
+                    
+                    -- DUELO TÁCTICO: PROBABILIDAD DE ROBO VS REGATE
+                    local carrierStats = characterStats[currentOwner]
+                    local carrierDribble = if carrierStats then carrierStats.dribble else 70
+                    local defenderDef = botStats.defense
+
+                    -- Probabilidad calculada según los atributos reales
+                    local stealChance = math.clamp(50 + (defenderDef - carrierDribble) * 1.1, 20, 85)
+                    local roll = math.random(1, 100)
+
+                    if roll <= stealChance then
+                        attachBallToPlayer(bot)
+                    else
+                        -- El atacante supera la entrada con un regate exitoso (pequeño boost de evasión)
+                        isKickOnCooldown = true
+                        task.delay(0.35, function() isKickOnCooldown = false end)
+                    end
                 end
                 return
             end
@@ -2621,6 +2671,88 @@ RunService.Heartbeat:Connect(function()
     end
 
     local now = os.clock()
+
+    -- CONTROL REGLAMENTARIO DE LÍMITES: SAQUES DE BANDA Y CÓRNERS
+    if currentBall and not isGoalCelebrating and isMatchStarted then
+        local bPos = currentBall.Position
+        local outOfBounds = false
+        local isSideline = false
+        local isCorner = false
+        local restartPos = Vector3.new(0, 2.5, 0)
+
+        -- 1. Saque de Banda (Líneas Norte y Sur)
+        if math.abs(bPos.Z) > (halfY + 2) then
+            outOfBounds = true
+            isSideline = true
+            local restartX = math.clamp(bPos.X, -halfX + 10, halfX - 10)
+            local restartZ = if bPos.Z > 0 then (halfY - 4) else (-halfY + 4)
+            restartPos = Vector3.new(restartX, 2.5, restartZ)
+
+        -- 2. Fondo / Córner (Líneas Este y Oeste fuera de portería)
+        elseif math.abs(bPos.X) > (halfX + 2) then
+            -- Solo si no es gol (si no está dentro del marco de la portería)
+            if math.abs(bPos.Z) > (GOAL_WIDTH / 2 + 1) or bPos.Y > (GOAL_HEIGHT + 1) then
+                outOfBounds = true
+                isCorner = true
+                -- Ubicar en el córner más cercano
+                local cornerX = if bPos.X > 0 then (halfX - 4) else (-halfX + 4)
+                local cornerZ = if bPos.Z > 0 then (halfY - 4) else (-halfY + 4)
+                restartPos = Vector3.new(cornerX, 2.5, cornerZ)
+            end
+        end
+
+        if outOfBounds and not isKickOnCooldown then
+            releaseBall()
+            isKickOnCooldown = true
+
+            -- Reubicar balón en el punto de saque
+            currentBall.AssemblyLinearVelocity = Vector3.zero
+            currentBall.AssemblyAngularVelocity = Vector3.zero
+            currentBall.CFrame = CFrame.new(restartPos)
+
+            -- Determinar a quién le toca sacar (al equipo contrario del que tocó por última vez)
+            local lastWasRed = (lastToucherModel and string.find(lastToucherModel.Name, "Rojo") ~= nil)
+            local awardTeam = if lastWasRed then "Azul" else "Rojo"
+            local awardBots = if awardTeam == "Azul" then teamBlueBots else teamRedBots
+
+            -- Encontrar el bot más cercano al punto de saque para ejecutarlo
+            local takerSlot: BotSlot? = nil
+            local minTakerDist = 9999
+            for _, slot in pairs(awardBots) do
+                if slot.model and slot.role ~= "Portero" then
+                    local hrp = slot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                    if hrp then
+                        local d = (hrp.Position - restartPos).Magnitude
+                        if d < minTakerDist then
+                            minTakerDist = d
+                            takerSlot = slot
+                        end
+                    end
+                end
+            end
+
+            if takerSlot and takerSlot.model then
+                local takerHrp = takerSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                if takerHrp then
+                    takerHrp.CFrame = CFrame.new(restartPos + Vector3.new(0, 0, (if restartPos.Z > 0 then 4 else -4)))
+                    task.delay(0.6, function()
+                        attachBallToPlayer(takerSlot.model)
+                        isKickOnCooldown = false
+                    end)
+                else
+                    task.delay(0.8, function() isKickOnCooldown = false end)
+                end
+            else
+                task.delay(0.8, function() isKickOnCooldown = false end)
+            end
+
+            if isCorner then
+                print(string.format("[REGLAMENTO] ¡CÓRNER para el equipo %s!", awardTeam))
+            elseif isSideline then
+                print(string.format("[REGLAMENTO] ¡SAQUE DE BANDA para el equipo %s!", awardTeam))
+            end
+        end
+    end
 
     if not isMatchPaused then
         local blueTargetGoal = if currentPeriodSideSwapped then BLUE_GOAL_CENTER else RED_GOAL_CENTER
