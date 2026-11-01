@@ -3,10 +3,11 @@ local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 local RunService = game:GetService("RunService")
+local PathfindingService = game:GetService("PathfindingService")
 
-print("=======================================")
-print("[SERVIDOR] Futbol Avanzado: Stats de Jugadores, Pases Tácticos y Disparos Aéreos")
-print("=======================================")
+print("==========================================================================")
+print("[SERVIDOR] Futbol Táctico 6v6 Automatizado: Gran Estadio, Formaciones e IA")
+print("==========================================================================")
 
 --------------------------------------------------------------------------------
 -- 1. CONFIGURACIÓN DE COLISIONES
@@ -49,16 +50,23 @@ for _, p in ipairs(Players:GetPlayers()) do
 end
 
 --------------------------------------------------------------------------------
--- 2. CONSTRUCCIÓN DEL GRAN ESTADIO
+-- 2. CONSTRUCCIÓN DEL GRAN ESTADIO REGLAMENTARIO
 --------------------------------------------------------------------------------
-local FIELD_SIZE = Vector2.new(280, 170)
-local WALL_HEIGHT = 22
+local FIELD_SIZE = Vector2.new(380, 230)
+local WALL_HEIGHT = 28
 local WALL_THICKNESS = 3
-local GOAL_WIDTH = 28
-local GOAL_HEIGHT = 11
-local GOAL_DEPTH = 13
+local GOAL_WIDTH = 34
+local GOAL_HEIGHT = 13
+local GOAL_DEPTH = 16
 
--- El césped tiene Y = 0 (grosor 1 stud, la cara superior está en Y = 0.5)
+-- Dimensiones de áreas reglamentarias (en studs)
+local PENALTY_AREA_DEPTH = 58
+local PENALTY_AREA_WIDTH = 130
+local GOAL_AREA_DEPTH = 22
+local GOAL_AREA_WIDTH = 64
+local PENALTY_SPOT_DIST = 38
+local CENTER_CIRCLE_RADIUS = 32
+
 local FIELD_Y = 0.51
 
 local pitchFolder = workspace:FindFirstChild("SoccerPitch")
@@ -85,18 +93,47 @@ local function createFieldPart(name: string, size: Vector3, position: Vector3, c
     return p
 end
 
--- Césped
-createFieldPart("CespedePrincipal", Vector3.new(FIELD_SIZE.X, 1, FIELD_SIZE.Y), Vector3.new(0, 0, 0), Color3.fromRGB(40, 140, 50), Enum.Material.Grass)
+local function createFieldLine(name: string, size: Vector3, position: Vector3): Part
+    local p = Instance.new("Part")
+    p.Name = name
+    p.Size = size
+    p.Position = position
+    p.Color = Color3.fromRGB(245, 245, 245)
+    p.Material = Enum.Material.SmoothPlastic
+    p.Anchored = true
+    p.CanCollide = false
+    p.TopSurface = Enum.SurfaceType.Smooth
+    p.BottomSurface = Enum.SurfaceType.Smooth
+    p.Parent = pitchFolder
+    return p
+end
 
--- Línea central divisoria plana al ras (Y = 0.51)
-createFieldPart("LineaCentro", Vector3.new(1.2, 0.02, FIELD_SIZE.Y), Vector3.new(0, FIELD_Y, 0), Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic)
+-- Césped principal (Campo gigante)
+createFieldPart("CespedePrincipal", Vector3.new(FIELD_SIZE.X, 1, FIELD_SIZE.Y), Vector3.new(0, 0, 0), Color3.fromRGB(38, 140, 52), Enum.Material.Grass)
 
--- Aro central hueco y mate (exactamente alineado en Y = 0.51)
+-- Césped perimetral exterior
+createFieldPart("BandaExterior", Vector3.new(FIELD_SIZE.X + 30, 0.95, FIELD_SIZE.Y + 30), Vector3.new(0, -0.05, 0), Color3.fromRGB(32, 115, 42), Enum.Material.Grass)
+
+-- Líneas de banda y fondo
+local halfX = FIELD_SIZE.X / 2
+local halfY = FIELD_SIZE.Y / 2
+local lineThick = 1.2
+local lineH = 0.02
+
+createFieldLine("LineaBandaNorte", Vector3.new(FIELD_SIZE.X, lineH, lineThick), Vector3.new(0, FIELD_Y, -halfY))
+createFieldLine("LineaBandaSur", Vector3.new(FIELD_SIZE.X, lineH, lineThick), Vector3.new(0, FIELD_Y, halfY))
+createFieldLine("LineaFondoOeste", Vector3.new(lineThick, lineH, FIELD_SIZE.Y), Vector3.new(-halfX, FIELD_Y, 0))
+createFieldLine("LineaFondoEste", Vector3.new(lineThick, lineH, FIELD_SIZE.Y), Vector3.new(halfX, FIELD_Y, 0))
+
+-- Línea central divisoria
+createFieldLine("LineaCentro", Vector3.new(lineThick, lineH, FIELD_SIZE.Y), Vector3.new(0, FIELD_Y, 0))
+
+-- Círculo central (Malla hueca en Y = 0.51)
 local ringMeshPart = Instance.new("Part")
 ringMeshPart.Name = "AroCentralHueco"
-ringMeshPart.Size = Vector3.new(30, 0.02, 30)
+ringMeshPart.Size = Vector3.new(CENTER_CIRCLE_RADIUS * 2, lineH, CENTER_CIRCLE_RADIUS * 2)
 ringMeshPart.Position = Vector3.new(0, FIELD_Y, 0)
-ringMeshPart.Color = Color3.fromRGB(240, 240, 240)
+ringMeshPart.Color = Color3.fromRGB(245, 245, 245)
 ringMeshPart.Material = Enum.Material.SmoothPlastic
 ringMeshPart.Anchored = true
 ringMeshPart.CanCollide = false
@@ -105,20 +142,56 @@ ringMeshPart.Parent = pitchFolder
 local ringSpecialMesh = Instance.new("SpecialMesh")
 ringSpecialMesh.MeshType = Enum.MeshType.FileMesh
 ringSpecialMesh.MeshId = "rbxassetid://3270017"
-ringSpecialMesh.Scale = Vector3.new(15, 15, 0.02)
+ringSpecialMesh.Scale = Vector3.new(CENTER_CIRCLE_RADIUS, CENTER_CIRCLE_RADIUS, 0.02)
 ringSpecialMesh.Parent = ringMeshPart
 
--- Punto central plano para posicionar el balón
+-- Punto central
 local centerDot = Instance.new("Part")
 centerDot.Name = "PuntoCentralBalon"
 centerDot.Shape = Enum.PartType.Cylinder
-centerDot.Size = Vector3.new(0.02, 2, 2)
+centerDot.Size = Vector3.new(lineH, 2.4, 2.4)
 centerDot.CFrame = CFrame.new(0, FIELD_Y, 0) * CFrame.Angles(0, 0, math.rad(90))
-centerDot.Color = Color3.fromRGB(240, 240, 240)
+centerDot.Color = Color3.fromRGB(245, 245, 245)
 centerDot.Material = Enum.Material.SmoothPlastic
 centerDot.Anchored = true
 centerDot.CanCollide = false
 centerDot.Parent = pitchFolder
+
+-- Construcción de Áreas Grande, Pequeña y Puntos de Penalti para cada portería
+local function buildGoalAreas(sideSign: number, teamTag: string)
+    local goalLineX = halfX * sideSign
+    local inwardDir = -sideSign
+
+    -- 1. Área Grande (Penalty Box)
+    local pAreaFrontX = goalLineX + (inwardDir * PENALTY_AREA_DEPTH)
+    local pAreaCenterX = goalLineX + (inwardDir * (PENALTY_AREA_DEPTH / 2))
+    createFieldLine("AreaGrande_Front_" .. teamTag, Vector3.new(lineThick, lineH, PENALTY_AREA_WIDTH), Vector3.new(pAreaFrontX, FIELD_Y, 0))
+    createFieldLine("AreaGrande_Top_" .. teamTag, Vector3.new(PENALTY_AREA_DEPTH, lineH, lineThick), Vector3.new(pAreaCenterX, FIELD_Y, -PENALTY_AREA_WIDTH/2))
+    createFieldLine("AreaGrande_Bottom_" .. teamTag, Vector3.new(PENALTY_AREA_DEPTH, lineH, lineThick), Vector3.new(pAreaCenterX, FIELD_Y, PENALTY_AREA_WIDTH/2))
+
+    -- 2. Área Pequeña (Goal Box)
+    local gAreaFrontX = goalLineX + (inwardDir * GOAL_AREA_DEPTH)
+    local gAreaCenterX = goalLineX + (inwardDir * (GOAL_AREA_DEPTH / 2))
+    createFieldLine("AreaPequena_Front_" .. teamTag, Vector3.new(lineThick, lineH, GOAL_AREA_WIDTH), Vector3.new(gAreaFrontX, FIELD_Y, 0))
+    createFieldLine("AreaPequena_Top_" .. teamTag, Vector3.new(GOAL_AREA_DEPTH, lineH, lineThick), Vector3.new(gAreaCenterX, FIELD_Y, -GOAL_AREA_WIDTH/2))
+    createFieldLine("AreaPequena_Bottom_" .. teamTag, Vector3.new(GOAL_AREA_DEPTH, lineH, lineThick), Vector3.new(gAreaCenterX, FIELD_Y, GOAL_AREA_WIDTH/2))
+
+    -- 3. Punto de Penalti
+    local penaltySpotX = goalLineX + (inwardDir * PENALTY_SPOT_DIST)
+    local penSpot = Instance.new("Part")
+    penSpot.Name = "PuntoPenalti_" .. teamTag
+    penSpot.Shape = Enum.PartType.Cylinder
+    penSpot.Size = Vector3.new(lineH, 2.0, 2.0)
+    penSpot.CFrame = CFrame.new(penaltySpotX, FIELD_Y, 0) * CFrame.Angles(0, 0, math.rad(90))
+    penSpot.Color = Color3.fromRGB(245, 245, 245)
+    penSpot.Material = Enum.Material.SmoothPlastic
+    penSpot.Anchored = true
+    penSpot.CanCollide = false
+    penSpot.Parent = pitchFolder
+end
+
+buildGoalAreas(-1, "Azul")
+buildGoalAreas(1, "Rojo")
 
 -- Spawns transparentes
 for _, obj in ipairs(workspace:GetDescendants()) do
@@ -138,9 +211,7 @@ workspace.DescendantAdded:Connect(function(obj)
     end
 end)
 
--- Muros perimetrales de cristal
-local halfX = FIELD_SIZE.X / 2
-local halfY = FIELD_SIZE.Y / 2
+-- Muros perimetrales
 local wallY = WALL_HEIGHT / 2
 
 createFieldPart("MuroNorte", Vector3.new(FIELD_SIZE.X + WALL_THICKNESS*2, WALL_HEIGHT, WALL_THICKNESS), Vector3.new(0, wallY, -halfY - (WALL_THICKNESS/2)), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
@@ -161,8 +232,8 @@ local function buildGoal(teamName: string, posX: number, primaryColor: Color3): 
     goalFolder.Parent = pitchFolder
 
     local dirSign = if posX < 0 then -1 else 1
-    local postThick = 0.8
-    local barColor = Color3.fromRGB(240, 240, 240)
+    local postThick = 1.0
+    local barColor = Color3.fromRGB(245, 245, 245)
 
     local function makePost(size: Vector3, pos: Vector3): Part
         local p = Instance.new("Part")
@@ -250,11 +321,11 @@ local updateScoreEvent = getOrCreateRemote("UpdateScore")
 local shotCooldownEvent = getOrCreateRemote("ShotCooldown")
 
 --------------------------------------------------------------------------------
--- 4. STATS DE JUGADORES (VELOCIDAD, DISPARO, DEFENSA)
+-- 4. STATS Y MODELOS DE JUGADORES
 --------------------------------------------------------------------------------
 type PlayerStats = {
     name: string,
-    role: string, -- "Delantero", "Mediocampista", "Defensa"
+    role: string, -- "Delantero", "Central", "Defensa"
     speed: number,   -- 1 a 100
     shot: number,    -- 1 a 100
     defense: number, -- 1 a 100
@@ -268,49 +339,44 @@ local FAMOUS_PLAYERS_DATA: {PlayerStats} = {
     {name = "Vinicius Jr", role = "Delantero", speed = 97, shot = 86, defense = 38},
     {name = "Robert Lewandowski", role = "Delantero", speed = 76, shot = 93, defense = 48},
     {name = "Lamine Yamal", role = "Delantero", speed = 90, shot = 85, defense = 40},
-    {name = "Luka Modrić", role = "Mediocampista", speed = 75, shot = 84, defense = 78},
-    {name = "Kevin De Bruyne", role = "Mediocampista", speed = 78, shot = 90, defense = 72},
-    {name = "Zinedine Zidane", role = "Mediocampista", speed = 79, shot = 89, defense = 75},
-    {name = "Andrés Iniesta", role = "Mediocampista", speed = 80, shot = 83, defense = 74},
+    {name = "Luka Modrić", role = "Central", speed = 75, shot = 84, defense = 78},
+    {name = "Kevin De Bruyne", role = "Central", speed = 78, shot = 90, defense = 72},
+    {name = "Zinedine Zidane", role = "Central", speed = 79, shot = 89, defense = 75},
+    {name = "Andrés Iniesta", role = "Central", speed = 80, shot = 83, defense = 74},
+    {name = "Xavi Hernández", role = "Central", speed = 77, shot = 81, defense = 76},
+    {name = "Jude Bellingham", role = "Central", speed = 84, shot = 87, defense = 79},
     {name = "Virgil van Dijk", role = "Defensa", speed = 81, shot = 60, defense = 96},
     {name = "Sergio Ramos", role = "Defensa", speed = 78, shot = 72, defense = 94},
     {name = "Carles Puyol", role = "Defensa", speed = 77, shot = 55, defense = 97},
     {name = "Paolo Maldini", role = "Defensa", speed = 83, shot = 58, defense = 98},
+    {name = "Alessandro Nesta", role = "Defensa", speed = 80, shot = 52, defense = 95},
     {name = "Ronaldinho", role = "Delantero", speed = 88, shot = 92, defense = 40},
 }
 
--- Mapa para almacenar stats asignados a cada modelo (Bots y Jugadores)
 local characterStats: { [Model]: PlayerStats } = {}
 
--- Función para calcular valores mecánicos a partir de los stats
 local function getWalkSpeedFromStat(speedStat: number): number
-    -- 60 -> 16 walkspeed, 98 -> 24 walkspeed
     return 14 + (speedStat / 100) * 10
 end
 
 local function getSprintSpeedFromStat(speedStat: number): number
-    -- 60 -> 25 sprint, 98 -> 36 sprint
     return 22 + (speedStat / 100) * 14
 end
 
 local function getStealRadiusFromStat(defenseStat: number): number
-    -- Mayor defensa = roba desde más lejos (4.0 a 6.8 studs)
-    return 4.0 + (defenseStat / 100) * 2.8
+    return 4.0 + (defenseStat / 100) * 3.2
 end
 
 local function getStealCooldownFromStat(defenseStat: number): number
-    -- Mayor defensa = roba con menos cooldown (3.2s a 1.8s)
-    return 3.5 - (defenseStat / 100) * 1.7
+    return 3.5 - (defenseStat / 100) * 1.8
 end
 
 local function getShotPowerMultiplier(shotStat: number): number
-    -- 50 -> 0.85x, 97 -> 1.35x potencia de tiro
     return 0.6 + (shotStat / 100) * 0.75
 end
 
 local function getShotRangeFromStat(shotStat: number): number
-    -- Rango de disparo del bot antes de tirar (40 studs a 85 studs para Messi/Haaland)
-    return 35 + (shotStat / 100) * 50
+    return 40 + (shotStat / 100) * 55
 end
 
 --------------------------------------------------------------------------------
@@ -324,7 +390,7 @@ local RING_COLOR_RED = Color3.fromRGB(255, 65, 65)
 local MAX_CHARGE_DURATION = 1.6
 local BASE_MIN_SPEED = 40
 local BASE_MAX_SPEED = 240
-local SHOT_COOLDOWN_TIME = 5.0
+local SHOT_COOLDOWN_TIME = 4.5
 local lastPlayerShotTime: { [Player]: number } = {}
 
 local currentBall: Part? = nil
@@ -337,22 +403,8 @@ local isGoalCelebrating = false
 local scoreBlue = 0
 local scoreRed = 0
 
-local botRed: Model? = nil
-local botBlue: Model? = nil
-local botRedLastShotTime = 0
-local botBlueLastShotTime = 0
-local botRedLastPowerShot = 0
-local botBlueLastPowerShot = 0
-local botRedLastStealTime = 0
-local botBlueLastStealTime = 0
-
-local botRedSprintStart = 0
-local botRedSprintEnd = 0
-local botBlueSprintStart = 0
-local botBlueSprintEnd = 0
-
-local BLUE_SPAWN_POS = Vector3.new(-55, 3, 0)
-local RED_SPAWN_POS = Vector3.new(55, 3, 0)
+local BLUE_GOAL_CENTER = Vector3.new(-halfX, 4, 0)
+local RED_GOAL_CENTER = Vector3.new(halfX, 4, 0)
 
 local goalkeeperBlue: Model? = nil
 local goalkeeperRed: Model? = nil
@@ -504,7 +556,7 @@ local function attachBallToPlayer(character: Model)
     weld.Parent = currentBall
     activeWeld = weld
 
-    local isRed = (character == botRed)
+    local isRed = string.find(character.Name, "Rojo") ~= nil
     createAuraRing(character, if isRed then RING_COLOR_RED else RING_COLOR_BLUE)
 
     local player = Players:GetPlayerFromCharacter(character)
@@ -514,7 +566,191 @@ local function attachBallToPlayer(character: Model)
 end
 
 --------------------------------------------------------------------------------
--- 9. SPAWN DEL BALÓN Y GESTIÓN DE GOLES
+-- 9. ESTRUCTURA Y COORDINADOR DE EQUIPOS (6v6 BOTS)
+--------------------------------------------------------------------------------
+type BotSlot = {
+    model: Model,
+    role: string,            -- "Delantero", "Central", "Defensa"
+    roleId: string,          -- "ST", "CM1", "CM2", "DEF1", "DEF2", "DEF3"
+    teamName: string,        -- "Azul" | "Rojo"
+    basePosition: Vector3,
+    stats: PlayerStats,
+    lastPassTime: number,
+    lastShotTime: number,
+    lastStealTime: number,
+}
+
+local teamBlueBots: { [string]: BotSlot } = {}
+local teamRedBots: { [string]: BotSlot } = {}
+
+-- Puestos de inicio de la formación 3-2-1 (relativo a las mitades del campo de 380 studs)
+-- Porterías en X = -190 (Azul) y X = 190 (Rojo)
+local FORMATION_BLUE: { [string]: { role: string, pos: Vector3, label: string } } = {
+    ["DEF1"] = { role = "Defensa", pos = Vector3.new(-130, 3, -50), label = "Defensa Izq" },
+    ["DEF2"] = { role = "Defensa", pos = Vector3.new(-140, 3, 0),   label = "Defensa Central" },
+    ["DEF3"] = { role = "Defensa", pos = Vector3.new(-130, 3, 50),  label = "Defensa Der" },
+    ["CM1"]  = { role = "Central", pos = Vector3.new(-75, 3, -32),  label = "Central Izq" },
+    ["CM2"]  = { role = "Central", pos = Vector3.new(-75, 3, 32),   label = "Central Der" },
+    ["ST"]   = { role = "Delantero", pos = Vector3.new(-25, 3, 0),  label = "Delantero" },
+}
+
+local FORMATION_RED: { [string]: { role: string, pos: Vector3, label: string } } = {
+    ["DEF1"] = { role = "Defensa", pos = Vector3.new(130, 3, 50),   label = "Defensa Izq" },
+    ["DEF2"] = { role = "Defensa", pos = Vector3.new(140, 3, 0),    label = "Defensa Central" },
+    ["DEF3"] = { role = "Defensa", pos = Vector3.new(130, 3, -50),  label = "Defensa Der" },
+    ["CM1"]  = { role = "Central", pos = Vector3.new(75, 3, 32),   label = "Central Izq" },
+    ["CM2"]  = { role = "Central", pos = Vector3.new(75, 3, -32),  label = "Central Der" },
+    ["ST"]   = { role = "Delantero", pos = Vector3.new(25, 3, 0),   label = "Delantero" },
+}
+
+-- Función constructora de Bot modelo R6 completo
+local function buildSoccerBot(teamName: string, roleId: string, role: string, roleLabel: string, basePos: Vector3, jerseyColor: Color3): BotSlot
+    local pool: {PlayerStats} = {}
+    for _, item in ipairs(FAMOUS_PLAYERS_DATA) do
+        if item.role == role then
+            table.insert(pool, item)
+        end
+    end
+    if #pool == 0 then pool = FAMOUS_PLAYERS_DATA end
+    local statsTemplate = pool[math.random(1, #pool)]
+    local randomName = statsTemplate.name
+
+    local bot = Instance.new("Model")
+    bot.Name = string.format("Bot_%s_%s_%s", teamName, roleId, randomName)
+
+    local function makePart(name: string, size: Vector3, color: Color3): Part
+        local p = Instance.new("Part")
+        p.Name = name
+        p.Size = size
+        p.Color = color
+        p.Material = Enum.Material.SmoothPlastic
+        p.CanCollide = true
+        p.Parent = bot
+        return p
+    end
+
+    local hrp = makePart("HumanoidRootPart", Vector3.new(2, 2, 1), Color3.fromRGB(150, 150, 150))
+    hrp.Transparency = 1
+    hrp.CanCollide = false
+    hrp.CFrame = CFrame.new(basePos)
+
+    local torso = makePart("Torso", Vector3.new(2, 2, 1), jerseyColor)
+    local head = makePart("Head", Vector3.new(1.25, 1.25, 1.25), Color3.fromRGB(240, 200, 160))
+    local headMesh = Instance.new("SpecialMesh")
+    headMesh.MeshType = Enum.MeshType.Head
+    headMesh.Scale = Vector3.new(1.25, 1.25, 1.25)
+    headMesh.Parent = head
+
+    local leftArm = makePart("Left Arm", Vector3.new(1, 2, 1), jerseyColor)
+    local rightArm = makePart("Right Arm", Vector3.new(1, 2, 1), jerseyColor)
+    local leftLeg = makePart("Left Leg", Vector3.new(1, 2, 1), Color3.fromRGB(25, 25, 25))
+    local rightLeg = makePart("Right Leg", Vector3.new(1, 2, 1), Color3.fromRGB(25, 25, 25))
+
+    local function makeMotor(name: string, part0: BasePart, part1: BasePart, c0: CFrame, c1: CFrame)
+        local m = Instance.new("Motor6D")
+        m.Name = name
+        m.Part0 = part0
+        m.Part1 = part1
+        m.C0 = c0
+        m.C1 = c1
+        m.Parent = part0
+    end
+
+    makeMotor("RootJoint", hrp, torso, CFrame.new(0, 0, 0), CFrame.new(0, 0, 0))
+    makeMotor("Neck", torso, head, CFrame.new(0, 1, 0), CFrame.new(0, -0.5, 0))
+    makeMotor("Left Shoulder", torso, leftArm, CFrame.new(-1, 0.5, 0), CFrame.new(0.5, 0.5, 0))
+    makeMotor("Right Shoulder", torso, rightArm, CFrame.new(1, 0.5, 0), CFrame.new(-0.5, 0.5, 0))
+    makeMotor("Left Hip", torso, leftLeg, CFrame.new(-0.5, -1, 0), CFrame.new(0, 1, 0))
+    makeMotor("Right Hip", torso, rightLeg, CFrame.new(0.5, -1, 0), CFrame.new(0, 1, 0))
+
+    local humanoid = Instance.new("Humanoid")
+    humanoid.MaxHealth = 100
+    humanoid.Health = 100
+    humanoid.WalkSpeed = getWalkSpeedFromStat(statsTemplate.speed)
+    humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+    humanoid.Parent = bot
+
+    -- Billboard informativo
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 240, 0, 68)
+    billboard.StudsOffset = Vector3.new(0, 3.4, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = head
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, 0, 0.48, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = string.format("[%s - %s] %s", string.upper(teamName), roleId, randomName)
+    nameLabel.TextColor3 = jerseyColor
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextScaled = true
+    nameLabel.Parent = billboard
+
+    local statsLabel = Instance.new("TextLabel")
+    statsLabel.Size = UDim2.new(1, 0, 0.48, 0)
+    statsLabel.Position = UDim2.new(0, 0, 0.50, 0)
+    statsLabel.BackgroundTransparency = 1
+    statsLabel.Text = string.format("⚡VEL: %d | 🎯DIS: %d | 🛡️DEF: %d", statsTemplate.speed, statsTemplate.shot, statsTemplate.defense)
+    statsLabel.TextColor3 = Color3.fromRGB(255, 230, 100)
+    statsLabel.Font = Enum.Font.GothamBold
+    statsLabel.TextScaled = true
+    statsLabel.Parent = billboard
+
+    bot.PrimaryPart = hrp
+    setupCharacterCollision(bot)
+
+    characterStats[bot] = statsTemplate
+    bot.Parent = workspace
+
+    local slot: BotSlot = {
+        model = bot,
+        role = role,
+        roleId = roleId,
+        teamName = teamName,
+        basePosition = basePos,
+        stats = statsTemplate,
+        lastPassTime = 0,
+        lastShotTime = 0,
+        lastStealTime = 0,
+    }
+
+    return slot
+end
+
+local function cleanTeam(teamSlots: { [string]: BotSlot })
+    for roleId, slot in pairs(teamSlots) do
+        if slot.model and slot.model.Parent then
+            if currentOwner == slot.model then releaseBall() end
+            characterStats[slot.model] = nil
+            slot.model:Destroy()
+        end
+        teamSlots[roleId] = nil
+    end
+end
+
+local function spawnFull6v6Match()
+    cleanTeam(teamBlueBots)
+    cleanTeam(teamRedBots)
+
+    -- Spawn Equipo Azul (6 jugadores)
+    for roleId, data in pairs(FORMATION_BLUE) do
+        local slot = buildSoccerBot("Azul", roleId, data.role, data.label, data.pos, Color3.fromRGB(35, 145, 245))
+        teamBlueBots[roleId] = slot
+    end
+
+    -- Spawn Equipo Rojo (6 jugadores)
+    for roleId, data in pairs(FORMATION_RED) do
+        local slot = buildSoccerBot("Rojo", roleId, data.role, data.label, data.pos, Color3.fromRGB(235, 45, 45))
+        teamRedBots[roleId] = slot
+    end
+
+    print("[SERVIDOR] ¡Partido 6v6 iniciado! 12 bots en el campo con roles y zonas tácticas.")
+end
+
+--------------------------------------------------------------------------------
+-- 10. SPAWN DEL BALÓN Y GESTIÓN DE GOLES
 --------------------------------------------------------------------------------
 local function spawnBall(spawnCFrame: CFrame)
     if currentBall and currentBall.Parent then
@@ -556,19 +792,23 @@ local function spawnBall(spawnCFrame: CFrame)
 end
 
 local function resetPositionsToField()
-    if botRed and botRed.Parent then
-        local rHrp = botRed:FindFirstChild("HumanoidRootPart") :: BasePart?
-        if rHrp then
-            rHrp.CFrame = CFrame.new(RED_SPAWN_POS + Vector3.new(0, 0, math.random(-15, 15)))
-            rHrp.AssemblyLinearVelocity = Vector3.zero
+    for roleId, slot in pairs(teamBlueBots) do
+        if slot.model and slot.model.Parent then
+            local hrp = slot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+            if hrp then
+                hrp.CFrame = CFrame.new(slot.basePosition + Vector3.new(0, 0, math.random(-4, 4)))
+                hrp.AssemblyLinearVelocity = Vector3.zero
+            end
         end
     end
 
-    if botBlue and botBlue.Parent then
-        local bHrp = botBlue:FindFirstChild("HumanoidRootPart") :: BasePart?
-        if bHrp then
-            bHrp.CFrame = CFrame.new(BLUE_SPAWN_POS + Vector3.new(0, 0, math.random(-15, 15)))
-            bHrp.AssemblyLinearVelocity = Vector3.zero
+    for roleId, slot in pairs(teamRedBots) do
+        if slot.model and slot.model.Parent then
+            local hrp = slot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+            if hrp then
+                hrp.CFrame = CFrame.new(slot.basePosition + Vector3.new(0, 0, math.random(-4, 4)))
+                hrp.AssemblyLinearVelocity = Vector3.zero
+            end
         end
     end
 
@@ -576,7 +816,7 @@ local function resetPositionsToField()
         local pChar = p.Character
         local pHrp = pChar and pChar:FindFirstChild("HumanoidRootPart") :: BasePart?
         if pHrp then
-            pHrp.CFrame = CFrame.new(-40, 3, math.random(-10, 10))
+            pHrp.CFrame = CFrame.new(-60, 3, math.random(-10, 10))
             pHrp.AssemblyLinearVelocity = Vector3.zero
         end
     end
@@ -597,7 +837,7 @@ local function onGoalScored(goalTeam: string)
 
     releaseBall()
 
-    task.delay(1.2, function()
+    task.delay(1.5, function()
         resetPositionsToField()
         spawnBall(CFrame.new(0, 2.5, 0))
         isGoalCelebrating = false
@@ -621,7 +861,7 @@ task.defer(function()
 end)
 
 --------------------------------------------------------------------------------
--- 10. EVENTOS DE DISPARO DEL JUGADOR (CON VARIACIÓN AÉREA Y STATS)
+-- 11. EVENTOS DE DISPARO DEL JUGADOR HUMANO
 --------------------------------------------------------------------------------
 local function checkPlayerCooldown(player: Player): boolean
     local lastTime = lastPlayerShotTime[player] or 0
@@ -647,10 +887,7 @@ releaseShotEvent.OnServerEvent:Connect(function(player, clientAimDirection: Vect
         return
     end
 
-    if not checkPlayerCooldown(player) then
-        return
-    end
-
+    if not checkPlayerCooldown(player) then return end
     applyPlayerCooldown(player)
 
     local startTime = serverChargeStartTime or os.clock()
@@ -673,12 +910,9 @@ releaseShotEvent.OnServerEvent:Connect(function(player, clientAimDirection: Vect
     releaseBall()
     isKickOnCooldown = true
 
-    pcall(function()
-        currentBall:SetNetworkOwner(player)
-    end)
+    pcall(function() currentBall:SetNetworkOwner(player) end)
 
     local speed = (BASE_MIN_SPEED + (powerRatio * (BASE_MAX_SPEED - BASE_MIN_SPEED))) * shotMultiplier
-    -- Elevación calculada según el ángulo de mira del jugador y la potencia
     local minLift = 8
     local maxLift = 42
     local lift = minLift + (powerRatio * (maxLift - minLift))
@@ -695,9 +929,7 @@ releaseShotEvent.OnServerEvent:Connect(function(player, clientAimDirection: Vect
     task.delay(0.5, function()
         isKickOnCooldown = false
         pcall(function()
-            if currentBall then
-                currentBall:SetNetworkOwner(nil)
-            end
+            if currentBall then currentBall:SetNetworkOwner(nil) end
         end)
     end)
 end)
@@ -708,10 +940,7 @@ quickShotEvent.OnServerEvent:Connect(function(player, clientAimDirection: Vector
         return
     end
 
-    if not checkPlayerCooldown(player) then
-        return
-    end
-
+    if not checkPlayerCooldown(player) then return end
     applyPlayerCooldown(player)
 
     local hrp = char:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -726,9 +955,7 @@ quickShotEvent.OnServerEvent:Connect(function(player, clientAimDirection: Vector
     releaseBall()
     isKickOnCooldown = true
 
-    pcall(function()
-        currentBall:SetNetworkOwner(player)
-    end)
+    pcall(function() currentBall:SetNetworkOwner(player) end)
 
     local speed = 160 * shotMultiplier
     local lift = 18
@@ -738,20 +965,17 @@ quickShotEvent.OnServerEvent:Connect(function(player, clientAimDirection: Vector
 
     currentBall.CFrame = currentBall.CFrame + (shootDir * 2.2)
     currentBall.AssemblyLinearVelocity = (Vector3.new(shootDir.X, 0, shootDir.Z).Unit * speed) + Vector3.new(0, lift, 0)
-    currentBall.AssemblyAngularVelocity = Vector3.new(-shootDir.Z, 0, shootDir.X) * 45
 
     task.delay(0.5, function()
         isKickOnCooldown = false
         pcall(function()
-            if currentBall then
-                currentBall:SetNetworkOwner(nil)
-            end
+            if currentBall then currentBall:SetNetworkOwner(nil) end
         end)
     end)
 end)
 
 --------------------------------------------------------------------------------
--- 11. PORTEROS IMPOSIBLES: PASE INTELIGENTE (DETRÁS DEL ALIADO SI HAY RIVAL)
+-- 12. PORTEROS INTELIGENTES Y CON CAPACIDAD DE SALTO (ÚNICOS CON SALTO)
 --------------------------------------------------------------------------------
 local function createGoalkeeper(teamName: string, posX: number, primaryColor: Color3, nameLabel: string): Model
     local gk = Instance.new("Model")
@@ -805,8 +1029,10 @@ local function createGoalkeeper(teamName: string, posX: number, primaryColor: Co
     local humanoid = Instance.new("Humanoid")
     humanoid.MaxHealth = 100
     humanoid.Health = 100
-    humanoid.WalkSpeed = 60
-    humanoid.JumpPower = 0
+    humanoid.WalkSpeed = 38
+    humanoid.JumpPower = 52 -- Portero sí tiene capacidad de salto
+    humanoid.JumpHeight = 7.5
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
     humanoid.Parent = gk
 
     local billboard = Instance.new("BillboardGui")
@@ -818,7 +1044,7 @@ local function createGoalkeeper(teamName: string, posX: number, primaryColor: Co
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Text = "🛡️ " .. nameLabel
+    label.Text = "🧤 " .. nameLabel
     label.TextColor3 = primaryColor
     label.Font = Enum.Font.GothamBold
     label.TextScaled = true
@@ -834,12 +1060,11 @@ local function createGoalkeeper(teamName: string, posX: number, primaryColor: Co
     impossibleShield.CanTouch = true
     impossibleShield.Parent = gk
 
-    -- Físicas y colisión del cuerpo del portero: colisionable con el balón para paradas físicas
     for _, p in ipairs(gk:GetChildren()) do
         if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" and p.Name ~= "ImpossibleShield" then
             p.CanCollide = true
             p.CollisionGroup = "Default"
-            p.CustomPhysicalProperties = PhysicalProperties.new(1.2, 0.4, 0.8, 1, 1) -- Alto rebote y fricción
+            p.CustomPhysicalProperties = PhysicalProperties.new(1.2, 0.4, 0.8, 1, 1)
         end
     end
 
@@ -850,14 +1075,10 @@ local function createGoalkeeper(teamName: string, posX: number, primaryColor: Co
     local function catchAndPass()
         if not currentBall or isKickOnCooldown or isGoalCelebrating or isHandlingBall then return end
 
-        -- PROBABILIDAD DE ERROR/PARADA SEGÚN EL DISPARO DEL RIVAL O VELOCIDAD DEL BALÓN
-        -- Si el balón viene muy potente (ej. > 135 studs/s), existe margen de rechace o fallo
-        local ballVelocity = currentBall.AssemblyLinearVelocity
-        local ballSpeed = ballVelocity.Magnitude
+        local ballSpeed = currentBall.AssemblyLinearVelocity.Magnitude
         if ballSpeed > 130 then
-            local failChance = math.clamp((ballSpeed - 130) * 1.5, 5, 25) -- 5% a 25% de error en disparos misil
+            local failChance = math.clamp((ballSpeed - 130) * 1.5, 5, 25)
             if math.random(1, 100) <= failChance then
-                -- Desvío físico / rechace en vez de atrapar limpio
                 local deflectDir = Vector3.new(if posX < 0 then 1 else -1, 0.4, (math.random() - 0.5) * 1.5).Unit
                 currentBall.AssemblyLinearVelocity = deflectDir * (ballSpeed * 0.65)
                 return
@@ -872,106 +1093,42 @@ local function createGoalkeeper(teamName: string, posX: number, primaryColor: Co
         currentBall.AssemblyAngularVelocity = Vector3.zero
         currentBall.CFrame = hrp.CFrame * CFrame.new(0, -1, -2.5)
 
-        task.delay(0.35, function()
+        task.delay(0.4, function()
             if not currentBall then
                 isHandlingBall = false
                 isKickOnCooldown = false
                 return
             end
 
-            -- 1. IDENTIFICAR ALIADO Y RIVALES
-            local targetTeammateHrp: BasePart? = nil
-            local enemyInterceptors: {BasePart} = {}
+            -- Buscar compañero para sacar en largo o corto
+            local allySlots = if teamName == "Azul" then teamBlueBots else teamRedBots
+            local passCandidate: BasePart? = nil
 
-            if teamName == "Azul" then
-                if botBlue and botBlue.Parent then
-                    targetTeammateHrp = botBlue:FindFirstChild("HumanoidRootPart") :: BasePart?
-                else
-                    for _, p in ipairs(Players:GetPlayers()) do
-                        local char = p.Character
-                        local pHrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-                        if pHrp then targetTeammateHrp = pHrp; break end
+            -- Priorizar pasar a un central o lateral libre
+            local candidates = { allySlots["CM1"], allySlots["CM2"], allySlots["DEF1"], allySlots["DEF3"] }
+            for _, c in ipairs(candidates) do
+                if c and c.model and c.model.Parent then
+                    local cHrp = c.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                    if cHrp then
+                        passCandidate = cHrp
+                        break
                     end
-                end
-                if botRed and botRed.Parent then
-                    local eHrp = botRed:FindFirstChild("HumanoidRootPart") :: BasePart?
-                    if eHrp then table.insert(enemyInterceptors, eHrp) end
-                end
-            else
-                if botRed and botRed.Parent then
-                    targetTeammateHrp = botRed:FindFirstChild("HumanoidRootPart") :: BasePart?
-                end
-                if botBlue and botBlue.Parent then
-                    local eHrp = botBlue:FindFirstChild("HumanoidRootPart") :: BasePart?
-                    if eHrp then table.insert(enemyInterceptors, eHrp) end
-                end
-                for _, p in ipairs(Players:GetPlayers()) do
-                    local char = p.Character
-                    local pHrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-                    if pHrp then table.insert(enemyInterceptors, pHrp) end
                 end
             end
 
-            -- 2. CALCULAR OBJETIVO TÁCTICO: DETRÁS DEL ALIADO SI HAY RIVAL EN FRENTE
-            local targetPos: Vector3
-            local isRivalInFront = false
-
-            if targetTeammateHrp then
-                local matePos = targetTeammateHrp.Position
-                local gkToMate = matePos - hrp.Position
-                local gkToMateDir = Vector3.new(gkToMate.X, 0, gkToMate.Z).Unit
-
-                -- Verificar si algún rival está frente al aliado (entre el portero y el aliado, o marcándolo de cerca en frente)
-                for _, rivalHrp in ipairs(enemyInterceptors) do
-                    local rivalPos = rivalHrp.Position
-                    local mateToRival = rivalPos - matePos
-                    local mateToRivalDist = mateToRival.Magnitude
-
-                    -- Si el rival está a menos de 25 studs del aliado en dirección hacia la portería contraria o en medio
-                    if mateToRivalDist < 25 then
-                        local dot = gkToMateDir:Dot(Vector3.new(mateToRival.X, 0, mateToRival.Z).Unit)
-                        if dot > -0.2 then
-                            isRivalInFront = true
-                            break
-                        end
-                    end
-                end
-
-                if isRivalInFront then
-                    -- Tirar el balón DETRÁS del aliado (más seguro para proteger la posesión)
-                    -- 'Detrás' significa hacia el campo propio del portero
-                    targetPos = matePos - (gkToMateDir * 12)
-                else
-                    -- Tirar al espacio adelantado hacia la carrera del aliado
-                    targetPos = matePos + (targetTeammateHrp.CFrame.LookVector * 6)
-                end
-            else
-                targetPos = Vector3.new(0, 3, 0)
-            end
-
-            -- 3. CÁLCULO DE TRAYECTORIA Y ELEVACIÓN AÉREA
+            local targetPos = if passCandidate then passCandidate.Position + Vector3.new(if posX < 0 then 10 else -10, 0, 0) else Vector3.new(0, 3, 0)
             local flatDir = Vector3.new(targetPos.X - hrp.Position.X, 0, targetPos.Z - hrp.Position.Z)
             local dist = flatDir.Magnitude
             local unitDir = if dist > 0.1 then flatDir.Unit else Vector3.new(if posX < 0 then 1 else -1, 0, 0)
 
-            local speed: number
-            local verticalLift: number
-
-            if isRivalInFront or dist > 35 then
-                -- Pase por el aire elevado sobre la marca
-                speed = math.clamp(dist * 1.5, 75, 140)
-                verticalLift = 34 + (dist * 0.28)
-            else
-                -- Pase tenso
-                speed = math.clamp(dist * 1.8, 65, 115)
-                verticalLift = 12
-            end
+            local speed = math.clamp(dist * 1.6, 75, 140)
+            local liftY = 28 + (dist * 0.15)
 
             currentBall.CFrame = currentBall.CFrame + (unitDir * 2.5) + Vector3.new(0, 1.2, 0)
-            currentBall.AssemblyLinearVelocity = (unitDir * speed) + Vector3.new(0, verticalLift, 0)
+            currentBall.AssemblyLinearVelocity = (unitDir * speed) + Vector3.new(0, liftY, 0)
             currentBall.AssemblyAngularVelocity = Vector3.new(-unitDir.Z, 0, unitDir.X) * 35
 
-            task.delay(0.4, function()
+            task.delay(0.5, function()
                 isKickOnCooldown = false
                 isHandlingBall = false
             end)
@@ -988,8 +1145,8 @@ local function createGoalkeeper(teamName: string, posX: number, primaryColor: Co
     return gk
 end
 
-goalkeeperBlue = createGoalkeeper("Azul", -halfX + 4, Color3.fromRGB(0, 160, 255), "Portero Imposible Azul")
-goalkeeperRed = createGoalkeeper("Rojo", halfX - 4, Color3.fromRGB(255, 60, 60), "Portero Imposible Rojo")
+goalkeeperBlue = createGoalkeeper("Azul", -halfX + 4, Color3.fromRGB(0, 160, 255), "Portero Azul")
+goalkeeperRed = createGoalkeeper("Rojo", halfX - 4, Color3.fromRGB(255, 60, 60), "Portero Rojo")
 
 local function updateGoalkeeperAI(gk: Model?, goalX: number)
     if not gk or not gk.Parent or isGoalCelebrating then return end
@@ -1003,9 +1160,7 @@ local function updateGoalkeeperAI(gk: Model?, goalX: number)
     if currentBall and currentBall.Parent then
         local ballPos = currentBall.Position
         local ballVel = currentBall.AssemblyLinearVelocity
-        local ballSpeed = ballVel.Magnitude
 
-        -- 1. Predicción de trayectoria del balón hacia la línea de gol
         local predictedZ = ballPos.Z
         local timeToReach = 0
         local headingTowardsGoal = false
@@ -1024,35 +1179,35 @@ local function updateGoalkeeperAI(gk: Model?, goalX: number)
             end
         end
 
-        -- Margen de error humano del portero (simula tiempo de reacción realista)
         local reactionJitter = (math.sin(os.clock() * 5) * 0.4)
 
         if headingTowardsGoal then
-            -- 2. El balón va hacia portería: desplazarse o lanzarse (dive) hacia el punto de intercepción
             local targetZ = math.clamp(predictedZ + reactionJitter, -(GOAL_WIDTH / 2 - 1.5), (GOAL_WIDTH / 2 - 1.5))
             local distZ = math.abs(hrp.Position.Z - targetZ)
 
-            -- Si el balón está cerca y en el aire o esquinado, lanzarse con velocidad
+            -- Salto y estirada del portero cuando el balón viene alto
+            local isBallHigh = (ballPos.Y > 6 or (ballVel.Y > 5 and timeToReach < 1.0))
+            if isBallHigh and humanoid.FloorMaterial ~= Enum.Material.Air then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+
             if distZ > 4 and timeToReach < 0.8 then
-                humanoid.WalkSpeed = 48
-                -- Lanzamiento / estirada del portero
+                humanoid.WalkSpeed = 50
                 local diveDir = Vector3.new(0, 0, math.sign(targetZ - hrp.Position.Z))
-                hrp.AssemblyLinearVelocity = Vector3.new(0, 8, diveDir.Z * 32)
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 10, diveDir.Z * 34)
             else
-                humanoid.WalkSpeed = 38
+                humanoid.WalkSpeed = 40
             end
             humanoid:MoveTo(Vector3.new(goalX, 3, targetZ))
         else
-            -- 3. Posicionamiento en bisectriz: ubicarse en el arco entre el centro de la portería y el balón
+            -- Posicionamiento en arco bisectriz
             local toBall = (ballPos - goalCenter)
             local flatDir = Vector3.new(toBall.X, 0, toBall.Z).Unit
-            -- Salir un poco hacia adelante del arco (hasta 6 studs de la línea) para recortar ángulo
-            local advance = math.clamp(toBall.Magnitude * 0.08, 0, 7)
+            local advance = math.clamp(toBall.Magnitude * 0.08, 0, 9)
             local targetPos = goalCenter + (flatDir * advance)
             
-            -- Delimitar el movimiento dentro de la boca del arco
             targetPos = Vector3.new(
-                if isLeftGoal then math.clamp(targetPos.X, goalX, goalX + 8) else math.clamp(targetPos.X, goalX - 8, goalX),
+                if isLeftGoal then math.clamp(targetPos.X, goalX, goalX + 10) else math.clamp(targetPos.X, goalX - 10, goalX),
                 3,
                 math.clamp(targetPos.Z, -(GOAL_WIDTH / 2 - 2), (GOAL_WIDTH / 2 - 2))
             )
@@ -1067,494 +1222,449 @@ local function updateGoalkeeperAI(gk: Model?, goalX: number)
 end
 
 --------------------------------------------------------------------------------
--- 12. GENERACIÓN DE BOTS (/bot) CON STATS ALEATORIOS
+-- 13. SISTEMA DE PASES, INTELIGENCIA TÁCTICA Y ZONAS DE ACTUACIÓN
 --------------------------------------------------------------------------------
-local function buildBotModel(teamName: string, torsoColor: Color3, spawnPos: Vector3): (Model, PlayerStats)
-    local statsTemplate = FAMOUS_PLAYERS_DATA[math.random(1, #FAMOUS_PLAYERS_DATA)]
-    local randomName = statsTemplate.name
 
-    local bot = Instance.new("Model")
-    bot.Name = string.format("Bot_%s_%s", teamName, randomName)
+-- Helper para encontrar si un receptor de pase está libre de intercepción rival
+local function findBestPassTarget(passerSlot: BotSlot, allyTeam: { [string]: BotSlot }, enemyTeam: { [string]: BotSlot }): (BotSlot?, number)
+    local passerHrp = passerSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+    if not passerHrp then return nil, 0 end
 
-    local function makePart(name: string, size: Vector3, color: Color3): Part
-        local p = Instance.new("Part")
-        p.Name = name
-        p.Size = size
-        p.Color = color
-        p.Material = Enum.Material.SmoothPlastic
-        p.CanCollide = true
-        p.Parent = bot
-        return p
-    end
+    local passerPos = passerHrp.Position
+    local bestTarget: BotSlot? = nil
+    local bestScore = -9999
 
-    local hrp = makePart("HumanoidRootPart", Vector3.new(2, 2, 1), Color3.fromRGB(150, 150, 150))
-    hrp.Transparency = 1
-    hrp.CanCollide = false
-    hrp.CFrame = CFrame.new(spawnPos)
+    for roleId, candidate in pairs(allyTeam) do
+        if candidate ~= passerSlot and candidate.model and candidate.model.Parent then
+            local cHumanoid = candidate.model:FindFirstChildOfClass("Humanoid")
+            local cHrp = candidate.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+            if cHumanoid and cHumanoid.Health > 0 and cHrp then
+                local toCandidate = cHrp.Position - passerPos
+                local dist = toCandidate.Magnitude
 
-    local torso = makePart("Torso", Vector3.new(2, 2, 1), torsoColor)
-    local head = makePart("Head", Vector3.new(1.25, 1.25, 1.25), Color3.fromRGB(240, 200, 160))
-    local headMesh = Instance.new("SpecialMesh")
-    headMesh.MeshType = Enum.MeshType.Head
-    headMesh.Scale = Vector3.new(1.25, 1.25, 1.25)
-    headMesh.Parent = head
+                if dist > 15 and dist < 120 then
+                    local passDir = Vector3.new(toCandidate.X, 0, toCandidate.Z).Unit
+                    local isClear = true
 
-    local leftArm = makePart("Left Arm", Vector3.new(1, 2, 1), torsoColor)
-    local rightArm = makePart("Right Arm", Vector3.new(1, 2, 1), torsoColor)
-    local leftLeg = makePart("Left Leg", Vector3.new(1, 2, 1), Color3.fromRGB(25, 25, 25))
-    local rightLeg = makePart("Right Leg", Vector3.new(1, 2, 1), Color3.fromRGB(25, 25, 25))
+                    -- Comprobar si algún rival intercepta la línea de pase
+                    for _, enemySlot in pairs(enemyTeam) do
+                        if enemySlot.model and enemySlot.model.Parent then
+                            local eHrp = enemySlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                            if eHrp then
+                                local toEnemy = eHrp.Position - passerPos
+                                local proj = toEnemy:Dot(passDir)
+                                if proj > 0 and proj < dist then
+                                    local perpDist = (toEnemy - (passDir * proj)).Magnitude
+                                    if perpDist < 9 then
+                                        isClear = false
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
 
-    local function makeMotor(name: string, part0: BasePart, part1: BasePart, c0: CFrame, c1: CFrame)
-        local m = Instance.new("Motor6D")
-        m.Name = name
-        m.Part0 = part0
-        m.Part1 = part1
-        m.C0 = c0
-        m.C1 = c1
-        m.Parent = part0
-    end
+                    if isClear then
+                        -- Calcular puntuación táctica
+                        local forwardBonus = if passerSlot.teamName == "Azul" then (cHrp.Position.X - passerPos.X) else (passerPos.X - cHrp.Position.X)
+                        local roleBonus = 0
+                        if candidate.role == "Delantero" then roleBonus = 40
+                        elseif candidate.role == "Central" then roleBonus = 25
+                        else roleBonus = 10 end
 
-    makeMotor("RootJoint", hrp, torso, CFrame.new(0, 0, 0), CFrame.new(0, 0, 0))
-    makeMotor("Neck", torso, head, CFrame.new(0, 1, 0), CFrame.new(0, -0.5, 0))
-    makeMotor("Left Shoulder", torso, leftArm, CFrame.new(-1, 0.5, 0), CFrame.new(0.5, 0.5, 0))
-    makeMotor("Right Shoulder", torso, rightArm, CFrame.new(1, 0.5, 0), CFrame.new(-0.5, 0.5, 0))
-    makeMotor("Left Hip", torso, leftLeg, CFrame.new(-0.5, -1, 0), CFrame.new(0, 1, 0))
-    makeMotor("Right Hip", torso, rightLeg, CFrame.new(0.5, -1, 0), CFrame.new(0, 1, 0))
-
-    local humanoid = Instance.new("Humanoid")
-    humanoid.MaxHealth = 100
-    humanoid.Health = 100
-    humanoid.WalkSpeed = getWalkSpeedFromStat(statsTemplate.speed)
-    humanoid.JumpPower = 0
-    humanoid.Parent = bot
-
-    -- Billboard con Nombre y los 3 Stats
-    local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(0, 240, 0, 65)
-    billboard.StudsOffset = Vector3.new(0, 3.4, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Parent = head
-
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0.48, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = string.format("[%s] ⭐ %s", string.upper(teamName), randomName)
-    nameLabel.TextColor3 = torsoColor
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextScaled = true
-    nameLabel.Parent = billboard
-
-    local statsLabel = Instance.new("TextLabel")
-    statsLabel.Size = UDim2.new(1, 0, 0.48, 0)
-    statsLabel.Position = UDim2.new(0, 0, 0.50, 0)
-    statsLabel.BackgroundTransparency = 1
-    statsLabel.Text = string.format("⚡VEL: %d | 🎯DIS: %d | 🛡️DEF: %d", statsTemplate.speed, statsTemplate.shot, statsTemplate.defense)
-    statsLabel.TextColor3 = Color3.fromRGB(255, 230, 100)
-    statsLabel.Font = Enum.Font.GothamBold
-    statsLabel.TextScaled = true
-    statsLabel.Parent = billboard
-
-    bot.PrimaryPart = hrp
-    setupCharacterCollision(bot)
-
-    characterStats[bot] = statsTemplate
-    bot.Parent = workspace
-    return bot, statsTemplate
-end
-
-local function spawnBothBots(originPlayer: Player)
-    if botRed and botRed.Parent then
-        if currentOwner == botRed then releaseBall() end
-        characterStats[botRed] = nil
-        botRed:Destroy()
-    end
-    if botBlue and botBlue.Parent then
-        if currentOwner == botBlue then releaseBall() end
-        characterStats[botBlue] = nil
-        botBlue:Destroy()
-    end
-
-    botRed, _ = buildBotModel("Rojo", Color3.fromRGB(235, 45, 45), RED_SPAWN_POS)
-    botRedLastShotTime = 0
-    botRedLastPowerShot = 0
-    botRedSprintStart = 0
-    botRedSprintEnd = 0
-    botRedLastStealTime = 0
-
-    botBlue, _ = buildBotModel("Azul", Color3.fromRGB(45, 145, 245), BLUE_SPAWN_POS)
-    botBlueLastShotTime = 0
-    botBlueLastPowerShot = 0
-    botBlueSprintStart = 0
-    botBlueSprintEnd = 0
-    botBlueLastStealTime = 0
-
-    print("[SERVIDOR] 2 Bots creados con Stats únicos (Velocidad, Disparo, Defensa).")
-end
-
--- Asignar stats también al jugador humano al entrar o reaparecer
-local function assignStatsToPlayerCharacter(player: Player, char: Model)
-    local randomStats = FAMOUS_PLAYERS_DATA[math.random(1, #FAMOUS_PLAYERS_DATA)]
-    characterStats[char] = randomStats
-
-    local humanoid = char:WaitForChild("Humanoid", 10) :: Humanoid?
-    local head = char:WaitForChild("Head", 10) :: BasePart?
-    if humanoid then
-        humanoid.WalkSpeed = getWalkSpeedFromStat(randomStats.speed)
-    end
-
-    if head and not head:FindFirstChild("PlayerStatsBillboard") then
-        local billboard = Instance.new("BillboardGui")
-        billboard.Name = "PlayerStatsBillboard"
-        billboard.Size = UDim2.new(0, 240, 0, 50)
-        billboard.StudsOffset = Vector3.new(0, 3.2, 0)
-        billboard.AlwaysOnTop = true
-        billboard.Parent = head
-
-        local titleLabel = Instance.new("TextLabel")
-        titleLabel.Size = UDim2.new(1, 0, 0.48, 0)
-        titleLabel.BackgroundTransparency = 1
-        titleLabel.Text = string.format("⭐ %s (%s)", player.DisplayName, randomStats.name)
-        titleLabel.TextColor3 = Color3.fromRGB(80, 220, 255)
-        titleLabel.Font = Enum.Font.GothamBold
-        titleLabel.TextScaled = true
-        titleLabel.Parent = billboard
-
-        local statsLabel = Instance.new("TextLabel")
-        statsLabel.Size = UDim2.new(1, 0, 0.48, 0)
-        statsLabel.Position = UDim2.new(0, 0, 0.50, 0)
-        statsLabel.BackgroundTransparency = 1
-        statsLabel.Text = string.format("⚡VEL: %d | 🎯DIS: %d | 🛡️DEF: %d", randomStats.speed, randomStats.shot, randomStats.defense)
-        statsLabel.TextColor3 = Color3.fromRGB(255, 230, 100)
-        statsLabel.Font = Enum.Font.GothamBold
-        statsLabel.TextScaled = true
-        statsLabel.Parent = billboard
-    end
-
-    -- Sincronizar stats en Values dentro del Character para el cliente
-    local function setStatVal(name: string, val: number)
-        local obj = char:FindFirstChild(name) :: NumberValue?
-        if not obj then
-            obj = Instance.new("NumberValue")
-            obj.Name = name
-            obj.Parent = char
-        end
-        obj.Value = val
-    end
-    setStatVal("Stat_Speed", randomStats.speed)
-    setStatVal("Stat_Shot", randomStats.shot)
-    setStatVal("Stat_Defense", randomStats.defense)
-end
-
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(char)
-        assignStatsToPlayerCharacter(player, char)
-
-        local hrp = char:WaitForChild("HumanoidRootPart", 10) :: BasePart?
-        if hrp then
-            hrp.Touched:Connect(function(hit)
-                if (currentOwner == botRed or currentOwner == botBlue) and not isKickOnCooldown and currentBall then
-                    local dist = (currentBall.Position - hrp.Position).Magnitude
-                    local pStats = characterStats[char]
-                    local stealRadius = if pStats then getStealRadiusFromStat(pStats.defense) else 4.8
-                    if dist < stealRadius then
-                        attachBallToPlayer(char)
+                        local totalScore = forwardBonus + roleBonus - (dist * 0.2)
+                        if totalScore > bestScore then
+                            bestScore = totalScore
+                            bestTarget = candidate
+                        end
                     end
                 end
-            end)
-        end
-    end)
-    if player.Character then
-        assignStatsToPlayerCharacter(player, player.Character)
-    end
-    updateScoreEvent:FireClient(player, scoreBlue, scoreRed)
-end)
-
-for _, p in ipairs(Players:GetPlayers()) do
-    if p.Character then
-        assignStatsToPlayerCharacter(p, p.Character)
-    end
-end
-
---------------------------------------------------------------------------------
--- 13. IA AVANZADA DE BOTS CON STATS DINÁMICOS
---------------------------------------------------------------------------------
-local BLUE_GOAL_CENTER = Vector3.new(-halfX, 4, 0)
-local RED_GOAL_CENTER = Vector3.new(halfX, 4, 0)
-
-local function updateBotSprint(humanoid: Humanoid, sprintStart: number, sprintEnd: number, botStats: PlayerStats?): (number, number)
-    local walkSpeed = if botStats then getWalkSpeedFromStat(botStats.speed) else 18
-    local sprintSpeed = if botStats then getSprintSpeedFromStat(botStats.speed) else 28
-
-    local now = os.clock()
-    if sprintStart > sprintEnd then
-        if now - sprintStart >= 3.0 then
-            humanoid.WalkSpeed = walkSpeed
-            return sprintStart, now
-        else
-            humanoid.WalkSpeed = sprintSpeed
-        end
-    else
-        if now - sprintEnd >= 7.0 then
-            humanoid.WalkSpeed = sprintSpeed
-            return now, sprintEnd
-        else
-            humanoid.WalkSpeed = walkSpeed
-        end
-    end
-    return sprintStart, sprintEnd
-end
-
-local function calculateDribbleTarget(botHrp: BasePart, goalPos: Vector3, rivalHrp: BasePart?, botStats: PlayerStats?): Vector3
-    local forwardDir = (Vector3.new(goalPos.X, 0, goalPos.Z) - Vector3.new(botHrp.Position.X, 0, botHrp.Position.Z)).Unit
-    local directTarget = botHrp.Position + (forwardDir * 28)
-
-    -- Si hay un rival cerca o en la línea de avance, calcular evasión adaptativa
-    if rivalHrp then
-        local toRival = rivalHrp.Position - botHrp.Position
-        local distToRival = toRival.Magnitude
-
-        -- Mayor velocidad/regate = detecta y anticipa esquive con mejor margen
-        local detectRange = 28 + (if botStats then (botStats.speed / 100) * 8 else 4)
-
-        if distToRival < detectRange then
-            local rivalDir = toRival.Unit
-            local dot = forwardDir:Dot(rivalDir)
-            
-            -- El rival está en frente o cerrando el paso
-            if dot > 0.2 then
-                local perpLeft = Vector3.new(-forwardDir.Z, 0, forwardDir.X)
-                local perpRight = Vector3.new(forwardDir.Z, 0, -forwardDir.X)
-
-                -- Evaluar cuál lado tiene más espacio libre
-                local rivalVelocity = rivalHrp.AssemblyLinearVelocity
-                local rivalMovingLeft = (perpLeft:Dot(rivalVelocity) > 0)
-                
-                -- Si el rival se barre o corre a la izquierda, recortar a la derecha
-                local dodgeDir = if rivalMovingLeft then perpRight else perpLeft
-
-                -- Mantenerse dentro de los límites del campo (Z entre -70 y 70)
-                if botHrp.Position.Z > 55 then
-                    dodgeDir = Vector3.new(0, 0, -1)
-                elseif botHrp.Position.Z < -55 then
-                    dodgeDir = Vector3.new(0, 0, 1)
-                end
-
-                -- Mezclar avance con desborde lateral
-                local evasiveDir = (forwardDir * 0.55 + dodgeDir * 0.45).Unit
-                return botHrp.Position + (evasiveDir * 24)
             end
         end
     end
 
-    -- Buscar carril libre si el camino central está congestionado
-    if math.abs(botHrp.Position.Z) < 10 and math.random(1, 100) <= 20 then
-        local flankOffset = Vector3.new(0, 0, if math.random() > 0.5 then 18 else -18)
-        return directTarget + flankOffset
-    end
-
-    return directTarget
+    return bestTarget, bestScore
 end
 
-local function updateBotPlayerAI(
-    bot: Model?,
+-- Ejecutar un pase limpio por el suelo o raso al compañero
+local function executePass(passerSlot: BotSlot, targetSlot: BotSlot)
+    if not currentBall or isKickOnCooldown or currentOwner ~= passerSlot.model then return end
+    local passerHrp = passerSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+    local targetHrp = targetSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+    if not passerHrp or not targetHrp then return end
+
+    releaseBall()
+    isKickOnCooldown = true
+
+    -- Calcular pase al espacio (adelantado a la velocidad del compañero)
+    local targetVel = targetHrp.AssemblyLinearVelocity
+    local leadTime = math.clamp((targetHrp.Position - passerHrp.Position).Magnitude / 65, 0.2, 0.6)
+    local leadPos = targetHrp.Position + Vector3.new(targetVel.X, 0, targetVel.Z) * leadTime
+
+    local passDir = (leadPos - passerHrp.Position)
+    local dist = passDir.Magnitude
+    local unitDir = if dist > 0.1 then passDir.Unit else passerHrp.CFrame.LookVector
+
+    local passSpeed = math.clamp(dist * 1.8, 60, 125)
+    local lift = if dist > 45 then 12 else 4
+
+    currentBall.CFrame = currentBall.CFrame + (unitDir * 2.2) + Vector3.new(0, 0.5, 0)
+    currentBall.AssemblyLinearVelocity = (unitDir * passSpeed) + Vector3.new(0, lift, 0)
+
+    passerSlot.lastPassTime = os.clock()
+
+    task.delay(0.4, function()
+        isKickOnCooldown = false
+    end)
+end
+
+-- Despeje defensivo de emergencia hacia campo rival
+local function executeClearance(botSlot: BotSlot, enemyGoalPos: Vector3)
+    if not currentBall or isKickOnCooldown or currentOwner ~= botSlot.model then return end
+    local hrp = botSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+    if not hrp then return end
+
+    releaseBall()
+    isKickOnCooldown = true
+
+    local clearDir = (enemyGoalPos - hrp.Position).Unit
+    local liftY = math.random(32, 45)
+    local speed = math.random(110, 150)
+
+    currentBall.CFrame = currentBall.CFrame + (clearDir * 2.5) + Vector3.new(0, 1.2, 0)
+    currentBall.AssemblyLinearVelocity = (clearDir * speed) + Vector3.new(0, liftY, 0)
+    currentBall.AssemblyAngularVelocity = Vector3.new(-clearDir.Z, 0, clearDir.X) * 40
+
+    task.delay(0.5, function()
+        isKickOnCooldown = false
+    end)
+end
+
+-- Cálculo de desmarque o reposicionamiento táctico según la zona y situación del partido
+local function getTacticalPosition(
+    slot: BotSlot,
+    hasTeamPossession: boolean,
+    hasEnemyPossession: boolean,
+    ballPos: Vector3,
+    enemyGoalPos: Vector3
+): Vector3
+
+    local role = slot.role
+    local base = slot.basePosition
+    local isBlue = (slot.teamName == "Azul")
+    local attackDirX = if isBlue then 1 else -1
+
+    -- ZONAS DE ACTUACIÓN Y POSICIONAMIENTO DINÁMICO
+    if role == "Delantero" then
+        if hasTeamPossession then
+            -- Buscar espacios libres en tres cuartos de cancha rival
+            local goalOffsetZ = math.clamp(ballPos.Z * 0.7, -45, 45)
+            local attackX = (halfX - 45) * attackDirX
+            return Vector3.new(attackX, 3, goalOffsetZ)
+        elseif hasEnemyPossession then
+            -- Posicionamiento dinámico: esperar el contragolpe en mitad de cancha
+            return Vector3.new(35 * attackDirX, 3, math.clamp(ballPos.Z * 0.4, -30, 30))
+        else
+            return Vector3.new(50 * attackDirX, 3, 0)
+        end
+
+    elseif role == "Central" then
+        if hasTeamPossession then
+            -- CM1 y CM2 escalonados para que uno suba y el otro guarde la espalda
+            local isPrimaryAttacker = (slot.roleId == "CM1")
+            if isPrimaryAttacker then
+                local advancedX = (ballPos.X * 0.6) + (25 * attackDirX)
+                return Vector3.new(math.clamp(advancedX, -halfX + 60, halfX - 60), 3, base.Z + (ballPos.Z * 0.2))
+            else
+                local coverX = (ballPos.X * 0.5) - (20 * attackDirX)
+                return Vector3.new(math.clamp(coverX, -halfX + 45, halfX - 45), 3, base.Z * 0.8)
+            end
+        elseif hasEnemyPossession then
+            -- Regresar a la zona central para frenar la transición
+            local shieldX = (ballPos.X * 0.4) - (35 * attackDirX)
+            return Vector3.new(math.clamp(shieldX, -halfX + 35, halfX - 35), 3, base.Z)
+        else
+            return base
+        end
+
+    elseif role == "Defensa" then
+        if hasEnemyPossession then
+            -- Bloque defensivo compacto delante del área grande
+            local defLineX = if isBlue then (-halfX + 48) else (halfX - 48)
+            local shiftedZ = math.clamp(base.Z + (ballPos.Z * 0.35), -55, 55)
+            return Vector3.new(defLineX, 3, shiftedZ)
+        else
+            -- Mantener la línea en su campo sin subir innecesariamente
+            local safeLineX = if isBlue then (-halfX + 65) else (halfX - 65)
+            return Vector3.new(safeLineX, 3, base.Z)
+        end
+    end
+
+    return base
+end
+
+-- Actualización centralizada de un bot individual (toma de decisiones táctica)
+local function updateBotSlotAI(
+    slot: BotSlot,
+    allyTeam: { [string]: BotSlot },
+    enemyTeam: { [string]: BotSlot },
+    designatedPresser: BotSlot?,
     enemyGoalPos: Vector3,
-    rivalBot: Model?,
-    lastShotTime: number,
-    lastPowerShotTime: number,
-    sprintStart: number,
-    sprintEnd: number,
-    lastStealTime: number
-): (number, number, number, number, number)
+    now: number
+)
+    local bot = slot.model
+    if not bot or not bot.Parent or isGoalCelebrating then return end
 
-    if not bot or not bot.Parent or isGoalCelebrating then
-        return lastShotTime, lastPowerShotTime, sprintStart, sprintEnd, lastStealTime
-    end
-
-    local botHrp = bot:FindFirstChild("HumanoidRootPart") :: BasePart?
+    local hrp = bot:FindFirstChild("HumanoidRootPart") :: BasePart?
     local humanoid = bot:FindFirstChildOfClass("Humanoid")
-    if not botHrp or not humanoid or humanoid.Health <= 0 then
-        return lastShotTime, lastPowerShotTime, sprintStart, sprintEnd, lastStealTime
+    if not hrp or not humanoid or humanoid.Health <= 0 then return end
+
+    -- Garantizar que ningún jugador salte (solo porteros)
+    humanoid.JumpPower = 0
+    humanoid.JumpHeight = 0
+
+    local botStats = slot.stats
+    local ballPos = if currentBall then currentBall.Position else Vector3.zero
+    local distToBall = if currentBall then (ballPos - hrp.Position).Magnitude else 999
+    local distToEnemyGoal = (enemyGoalPos - hrp.Position).Magnitude
+
+    local isOwner = (currentOwner == bot)
+    local isAllyOwner = false
+    local isEnemyOwner = false
+
+    if currentOwner then
+        local isRedOwner = (string.find(currentOwner.Name, "Rojo") ~= nil)
+        local isSlotRed = (slot.teamName == "Rojo")
+        if isRedOwner == isSlotRed then
+            isAllyOwner = true
+        else
+            isEnemyOwner = true
+        end
     end
 
-    local botStats = characterStats[bot]
-    sprintStart, sprintEnd = updateBotSprint(humanoid, sprintStart, sprintEnd, botStats)
+    ----------------------------------------------------------------------------
+    -- ESTADO 1: EL BOT TIENE EL BALÓN (POSESIÓN Y ATAQUE)
+    ----------------------------------------------------------------------------
+    if isOwner then
+        -- 1. Si es defensa y está muy cerca de su portería y presionado, despejar
+        local ownGoalX = if slot.teamName == "Azul" then -halfX else halfX
+        local distToOwnGoal = math.abs(hrp.Position.X - ownGoalX)
+        if slot.role == "Defensa" and distToOwnGoal < 45 then
+            executeClearance(slot, enemyGoalPos)
+            return
+        end
 
-    local now = os.clock()
-    local rivalHrp = rivalBot and rivalBot.Parent and rivalBot:FindFirstChild("HumanoidRootPart") :: BasePart?
+        -- 2. Evaluar oportunidad de disparo
+        local shotMultiplier = getShotPowerMultiplier(botStats.shot)
+        local triggerRange = getShotRangeFromStat(botStats.shot)
 
-    -- A) CONDUCCIÓN, REGATE Y TIROS VARIADOS (RASO O AÉREO)
-    if currentOwner == bot then
-        local smartTarget = calculateDribbleTarget(botHrp, enemyGoalPos, rivalHrp, botStats)
-        humanoid:MoveTo(smartTarget)
+        if distToEnemyGoal < triggerRange and (now - slot.lastShotTime >= SHOT_COOLDOWN_TIME) and not isKickOnCooldown then
+            slot.lastShotTime = now
+            releaseBall()
+            isKickOnCooldown = true
 
-        local distToGoal = (enemyGoalPos - botHrp.Position).Magnitude
-        local canShoot = (now - lastShotTime >= SHOT_COOLDOWN_TIME)
-
-        local shotMultiplier = if botStats then getShotPowerMultiplier(botStats.shot) else 1.0
-        local triggerRange = if botStats then getShotRangeFromStat(botStats.shot) else 50
-
-        if canShoot and currentBall and not isKickOnCooldown then
-            -- Disparo preciso con ángulo hacia los postes/escuadras para batir al portero
             local goalPostTarget = enemyGoalPos
-            local shotStat = if botStats then botStats.shot else 75
-            -- Jugadores con más de 85 de tiro apuntan deliberadamente a las esquinas
-            if shotStat >= 85 then
+            if botStats.shot >= 85 then
                 local sideOffset = if math.random() > 0.5 then (GOAL_WIDTH / 2 - 2) else -(GOAL_WIDTH / 2 - 2)
                 goalPostTarget = enemyGoalPos + Vector3.new(0, math.random(2, 6), sideOffset)
             else
-                -- Dispersión natural según baja estadística de disparo
-                local errorSpread = (100 - shotStat) * 0.12
+                local errorSpread = (100 - botStats.shot) * 0.12
                 goalPostTarget = enemyGoalPos + Vector3.new(0, 0, (math.random() - 0.5) * errorSpread)
             end
 
-            -- Power Shot cada 10s (hasta desde 140 studs si tiene buen tiro)
-            local maxPowerRange = 100 + (botStats and botStats.shot or 80) * 0.5
-            if (now - lastPowerShotTime >= 10.0) and distToGoal < maxPowerRange then
-                lastShotTime = now
-                lastPowerShotTime = now
-                releaseBall()
-                isKickOnCooldown = true
+            local shootDir = (goalPostTarget - hrp.Position).Unit
+            local isAerial = (math.random(1, 100) <= 50)
+            local liftY = if isAerial then math.random(22, 34) else math.random(8, 14)
+            local speed = (115 * shotMultiplier)
 
-                local shootDir = (goalPostTarget - botHrp.Position).Unit
-                local isAerial = (math.random(1, 100) <= 60)
-                local liftY = if isAerial then math.random(24, 36) else math.random(10, 16)
+            currentBall.CFrame = currentBall.CFrame + (shootDir * 2.2)
+            currentBall.AssemblyLinearVelocity = (shootDir * speed) + Vector3.new(0, liftY, 0)
+            if botStats.shot >= 88 then igniteBallInFlames(2.5) end
 
-                currentBall.CFrame = currentBall.CFrame + (shootDir * 2.5)
-                currentBall.AssemblyLinearVelocity = (shootDir * (165 * shotMultiplier)) + Vector3.new(0, liftY, 0)
-                currentBall.AssemblyAngularVelocity = Vector3.new(-shootDir.Z, 0, shootDir.X) * 75
-                igniteBallInFlames(3.0)
+            task.delay(0.5, function() isKickOnCooldown = false end)
+            return
+        end
 
-                task.delay(0.5, function()
-                    isKickOnCooldown = false
-                end)
-            -- Tiro normal variado (por los aires o raso)
-            elseif distToGoal < triggerRange then
-                lastShotTime = now
-                releaseBall()
-                isKickOnCooldown = true
-
-                local shootDir = (goalPostTarget - botHrp.Position).Unit
-                local isAerial = (math.random(1, 100) <= 50)
-                local liftY = if isAerial then math.random(22, 32) else math.random(8, 14)
-                local speed = (110 * shotMultiplier)
-
-                currentBall.CFrame = currentBall.CFrame + (shootDir * 2.2)
-                currentBall.AssemblyLinearVelocity = (shootDir * speed) + Vector3.new(0, liftY, 0)
-
-                task.delay(0.5, function()
-                    isKickOnCooldown = false
-                end)
+        -- 3. Evaluar Pase Táctico
+        local timeSincePass = now - slot.lastPassTime
+        if timeSincePass > 2.0 and not isKickOnCooldown then
+            local bestTarget, targetScore = findBestPassTarget(slot, allyTeam, enemyTeam)
+            -- Pasar si hay buen receptor o si un rival está encima
+            if bestTarget and (targetScore > 15 or distToEnemyGoal > 110) then
+                executePass(slot, bestTarget)
+                return
             end
         end
 
-        return lastShotTime, lastPowerShotTime, sprintStart, sprintEnd, lastStealTime
+        -- 4. Conducción con esquive de rivales
+        local forwardDir = (Vector3.new(enemyGoalPos.X, 0, enemyGoalPos.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).Unit
+        local moveTarget = hrp.Position + (forwardDir * 25)
+
+        -- Buscar rival más cercano enfrente
+        for _, eSlot in pairs(enemyTeam) do
+            if eSlot.model and eSlot.model.Parent then
+                local eHrp = eSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                if eHrp then
+                    local toRival = eHrp.Position - hrp.Position
+                    if toRival.Magnitude < 22 and forwardDir:Dot(toRival.Unit) > 0.3 then
+                        local perpLeft = Vector3.new(-forwardDir.Z, 0, forwardDir.X)
+                        local perpRight = Vector3.new(forwardDir.Z, 0, -forwardDir.X)
+                        local dodgeDir = if perpLeft:Dot(eHrp.AssemblyLinearVelocity) > 0 then perpRight else perpLeft
+                        moveTarget = hrp.Position + ((forwardDir * 0.55 + dodgeDir * 0.45).Unit * 25)
+                        break
+                    end
+                end
+            end
+        end
+
+        humanoid:MoveTo(moveTarget)
+        return
     end
 
-    -- B) PERSECUCIÓN, ANTICIPACIÓN Y ROBO CON STAT DE DEFENSA
-    local targetPos: Vector3? = nil
-    local defenseStat = if botStats then botStats.defense else 60
-    local stealCooldown = getStealCooldownFromStat(defenseStat)
-    local stealRadius = getStealRadiusFromStat(defenseStat)
+    ----------------------------------------------------------------------------
+    -- ESTADO 2: EL EQUIPO RIVAL TIENE EL BALÓN (DEFENSA ORGANIZADA)
+    ----------------------------------------------------------------------------
+    if isEnemyOwner then
+        local stealRadius = getStealRadiusFromStat(botStats.defense)
+        local stealCooldown = getStealCooldownFromStat(botStats.defense)
 
-    if currentOwner and currentOwner.Parent and currentOwner ~= bot then
-        local targetHrp = currentOwner:FindFirstChild("HumanoidRootPart") :: BasePart?
-        if targetHrp then
-            local toOpponent = targetHrp.Position - botHrp.Position
-            local oppDist = toOpponent.Magnitude
-            local oppVelocity = targetHrp.AssemblyLinearVelocity
+        -- Solo el jugador designado para presionar corre hacia el portador
+        if designatedPresser == slot and currentOwner then
+            local carrierHrp = currentOwner:FindFirstChild("HumanoidRootPart") :: BasePart?
+            if carrierHrp then
+                humanoid:MoveTo(carrierHrp.Position)
 
-            -- Si tiene alta defensa (>75), anticipa la trayectoria en vez de correr hacia su espalda
-            if defenseStat > 75 and oppDist > 10 then
-                local interceptLead = math.clamp(oppDist / 35, 0.2, 0.8)
-                local anticipatedPos = targetHrp.Position + Vector3.new(oppVelocity.X, 0, oppVelocity.Z) * interceptLead
-                
-                -- Colocarse entre el portador y su propia portería para cerrar espacios
-                local ownGoalCenter = if enemyGoalPos.X > 0 then Vector3.new(-halfX, 4, 0) else Vector3.new(halfX, 4, 0)
-                local goalToCarrier = (anticipatedPos - ownGoalCenter).Unit
-                targetPos = ownGoalCenter + (goalToCarrier * (ownGoalCenter - anticipatedPos).Magnitude * 0.88)
-            else
-                targetPos = targetHrp.Position
+                if (carrierHrp.Position - hrp.Position).Magnitude < stealRadius and (now - slot.lastStealTime >= stealCooldown) and not isKickOnCooldown then
+                    slot.lastStealTime = now
+                    attachBallToPlayer(bot)
+                end
+                return
             end
+        else
+            -- Los otros mantienen posición defensiva escalonada y cubren líneas de pase
+            local tacticalPos = getTacticalPosition(slot, false, true, ballPos, enemyGoalPos)
+            humanoid:MoveTo(tacticalPos)
+            return
+        end
+    end
 
-            local canSteal = (now - lastStealTime >= stealCooldown)
-            if canSteal and oppDist < stealRadius and not isKickOnCooldown then
-                lastStealTime = now
+    ----------------------------------------------------------------------------
+    -- ESTADO 3: BALÓN SUELTO
+    ----------------------------------------------------------------------------
+    if currentOwner == nil and currentBall then
+        local stealRadius = getStealRadiusFromStat(botStats.defense)
+
+        if designatedPresser == slot then
+            -- El bot asignado persigue y anticipa el balón
+            local bVel = currentBall.AssemblyLinearVelocity
+            local interceptPos = if bVel.Magnitude > 15 then ballPos + Vector3.new(bVel.X, 0, bVel.Z) * 0.35 else ballPos
+            humanoid:MoveTo(interceptPos)
+
+            if distToBall < stealRadius and not isKickOnCooldown then
                 attachBallToPlayer(bot)
             end
-        end
-    elseif currentBall and currentBall.Parent then
-        local ballPos = currentBall.Position
-        local ballVel = currentBall.AssemblyLinearVelocity
-
-        -- Anticipación a balones sueltos o en movimiento rápido
-        if ballVel.Magnitude > 20 and (botHrp.Position - ballPos).Magnitude > 15 then
-            local leadTime = math.clamp((botHrp.Position - ballPos).Magnitude / 40, 0.2, 0.7)
-            targetPos = ballPos + Vector3.new(ballVel.X, 0, ballVel.Z) * leadTime
+            return
         else
-            targetPos = ballPos
-        end
-
-        if (botHrp.Position - currentBall.Position).Magnitude < stealRadius and not isKickOnCooldown then
-            attachBallToPlayer(bot)
+            -- Mantenerse organizado en su zona
+            local tacticalPos = getTacticalPosition(slot, false, false, ballPos, enemyGoalPos)
+            humanoid:MoveTo(tacticalPos)
+            return
         end
     end
 
-    if targetPos then
-        humanoid:MoveTo(targetPos)
+    ----------------------------------------------------------------------------
+    -- ESTADO 4: UN COMPAÑERO TIENE EL BALÓN (APOYO Y DESMARQUE)
+    ----------------------------------------------------------------------------
+    if isAllyOwner then
+        local tacticalPos = getTacticalPosition(slot, true, false, ballPos, enemyGoalPos)
+        humanoid:MoveTo(tacticalPos)
+        return
     end
-
-    return lastShotTime, lastPowerShotTime, sprintStart, sprintEnd, lastStealTime
 end
 
+-- Coordinador táctico por equipo (asigna 1 solo presser para evitar aglomeraciones)
+local function runTeamCoordinator(allyTeam: { [string]: BotSlot }, enemyTeam: { [string]: BotSlot }, enemyGoalPos: Vector3, now: number)
+    local bestPresserSlot: BotSlot? = nil
+    local minDistance = 9999
+
+    local targetItemPos = if currentBall then currentBall.Position else Vector3.zero
+    if currentOwner then
+        local cHrp = currentOwner:FindFirstChild("HumanoidRootPart") :: BasePart?
+        if cHrp then targetItemPos = cHrp.Position end
+    end
+
+    -- Encontrar el jugador mejor situado (generalmente más cercano y de rol acorde)
+    for roleId, slot in pairs(allyTeam) do
+        if slot.model and slot.model.Parent then
+            local hrp = slot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+            local hum = slot.model:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health > 0 then
+                local dist = (hrp.Position - targetItemPos).Magnitude
+                -- Delanteros y centrales tienen preferencia para presionar en campo rival; defensas solo si está en su tercio
+                local distWeight = dist
+                if slot.role == "Defensa" and (math.abs(targetItemPos.X - slot.basePosition.X) > 65) then
+                    distWeight = distWeight + 60 -- No sacar a los defensas de su línea
+                end
+
+                if distWeight < minDistance then
+                    minDistance = distWeight
+                    bestPresserSlot = slot
+                end
+            end
+        end
+    end
+
+    -- Actualizar cada bot con las directivas del coordinador
+    for roleId, slot in pairs(allyTeam) do
+        updateBotSlotAI(slot, allyTeam, enemyTeam, bestPresserSlot, enemyGoalPos, now)
+    end
+end
+
+--------------------------------------------------------------------------------
+-- 14. BUCLE PRINCIPAL HEARTBEAT (IA CENTRALIZADA)
+--------------------------------------------------------------------------------
 RunService.Heartbeat:Connect(function()
     updateGoalkeeperAI(goalkeeperBlue, -halfX + 4)
     updateGoalkeeperAI(goalkeeperRed, halfX - 4)
 
-    -- Robo del jugador humano según su stat de defensa
-    if (currentOwner == botRed or currentOwner == botBlue) and currentBall and not isKickOnCooldown then
+    local now = os.clock()
+
+    -- Coordinador de Equipo Azul (ataca hacia la derecha: RED_GOAL_CENTER)
+    runTeamCoordinator(teamBlueBots, teamRedBots, RED_GOAL_CENTER, now)
+
+    -- Coordinador de Equipo Rojo (ataca hacia la izquierda: BLUE_GOAL_CENTER)
+    runTeamCoordinator(teamRedBots, teamBlueBots, BLUE_GOAL_CENTER, now)
+
+    -- Robo del jugador humano si entra en el radio
+    if currentOwner and currentBall and not isKickOnCooldown then
         for _, pl in ipairs(Players:GetPlayers()) do
             local pChar = pl.Character
-            local pHrp = pChar and pChar:FindFirstChild("HumanoidRootPart") :: BasePart?
-            local pStats = pChar and characterStats[pChar]
-            local pRadius = if pStats then getStealRadiusFromStat(pStats.defense) else 4.5
-            if pHrp and (pHrp.Position - currentBall.Position).Magnitude < pRadius then
-                attachBallToPlayer(pChar)
-                break
+            if pChar and pChar ~= currentOwner then
+                local pHrp = pChar:FindFirstChild("HumanoidRootPart") :: BasePart?
+                local pStats = characterStats[pChar]
+                local pRadius = if pStats then getStealRadiusFromStat(pStats.defense) else 4.5
+                if pHrp and (pHrp.Position - currentBall.Position).Magnitude < pRadius then
+                    attachBallToPlayer(pChar)
+                    break
+                end
             end
         end
     end
-
-    botRedLastShotTime, botRedLastPowerShot, botRedSprintStart, botRedSprintEnd, botRedLastStealTime = updateBotPlayerAI(
-        botRed,
-        BLUE_GOAL_CENTER,
-        botBlue,
-        botRedLastShotTime,
-        botRedLastPowerShot,
-        botRedSprintStart,
-        botRedSprintEnd,
-        botRedLastStealTime
-    )
-
-    botBlueLastShotTime, botBlueLastPowerShot, botBlueSprintStart, botBlueSprintEnd, botBlueLastStealTime = updateBotPlayerAI(
-        botBlue,
-        RED_GOAL_CENTER,
-        botRed,
-        botBlueLastShotTime,
-        botBlueLastPowerShot,
-        botBlueSprintStart,
-        botBlueSprintEnd,
-        botBlueLastStealTime
-    )
 end)
 
 --------------------------------------------------------------------------------
--- 14. COMANDOS DE CHAT
+-- 15. COMANDOS DE CHAT (/bot)
 --------------------------------------------------------------------------------
 local function handleChatMessage(player: Player, rawMessage: string)
     local clean = string.lower(string.match(rawMessage, "^%s*(.-)%s*$") or rawMessage)
     
     if clean == "/bot" or clean == "bot" or clean == "!bot" then
-        spawnBothBots(player)
+        spawnFull6v6Match()
+    elseif clean == "/limpiar" or clean == "/stop" or clean == "!stop" then
+        cleanTeam(teamBlueBots)
+        cleanTeam(teamRedBots)
+        releaseBall()
+        print("[SERVIDOR] Partido detenido y bots eliminados.")
     elseif clean == "ball!" or clean == "/ball!" or clean == "ball" then
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -1600,6 +1710,7 @@ Players.PlayerAdded:Connect(function(player)
     player.Chatted:Connect(function(msg)
         handleChatMessage(player, msg)
     end)
+    updateScoreEvent:FireClient(player, scoreBlue, scoreRed)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
