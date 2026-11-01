@@ -445,22 +445,33 @@ for _, p in ipairs(Players:GetPlayers()) do
 end
 
 --------------------------------------------------------------------------------
--- 2. CONSTRUCCIÓN DEL GRAN ESTADIO REGLAMENTARIO (AMPLIADO A 480 x 280)
+-- 2. CONSTRUCCIÓN DEL GRAN ESTADIO REGLAMENTARIO (300 x 200 STUDS)
 --------------------------------------------------------------------------------
-local FIELD_SIZE = Vector2.new(480, 280)
-local WALL_HEIGHT = 32
+local FIELD_SIZE = Vector2.new(300, 200)
+local WALL_HEIGHT = 28
 local WALL_THICKNESS = 3
 
-local GOAL_WIDTH = 48
-local GOAL_HEIGHT = 16
-local GOAL_DEPTH = 20
+-- Portería: 22 studs de ancho por 12 studs de alto (medidas interiores)
+local GOAL_WIDTH = 22
+local GOAL_HEIGHT = 12
+local GOAL_DEPTH = 14
 
-local PENALTY_AREA_DEPTH = 75
-local PENALTY_AREA_WIDTH = 160
-local GOAL_AREA_DEPTH = 28
-local GOAL_AREA_WIDTH = 80
-local PENALTY_SPOT_DIST = 48
-local CENTER_CIRCLE_RADIUS = 40
+-- Área grande (Penal): 50 studs de ancho por 25 studs de profundidad
+local PENALTY_AREA_DEPTH = 25
+local PENALTY_AREA_WIDTH = 50
+
+-- Área pequeña (Meta): 20 studs de ancho por 10 studs de profundidad
+local GOAL_AREA_DEPTH = 10
+local GOAL_AREA_WIDTH = 20
+
+-- Punto de penal: Ubicado a 35 studs de la línea de meta
+local PENALTY_SPOT_DIST = 35
+
+-- Círculo central: Radio de 30 studs
+local CENTER_CIRCLE_RADIUS = 30
+
+-- Margen exterior de 15 studs
+local FIELD_MARGIN = 15
 
 local FIELD_Y = 0.51
 
@@ -503,12 +514,13 @@ local function createFieldLine(name: string, size: Vector3, position: Vector3): 
     return p
 end
 
+-- Césped principal (300 x 200 studs) y margen exterior (15 studs a cada lado)
 createFieldPart("CespedePrincipal", Vector3.new(FIELD_SIZE.X, 1, FIELD_SIZE.Y), Vector3.new(0, 0, 0), Color3.fromRGB(38, 140, 52), Enum.Material.Grass)
-createFieldPart("BandaExterior", Vector3.new(FIELD_SIZE.X + 34, 0.95, FIELD_SIZE.Y + 34), Vector3.new(0, -0.05, 0), Color3.fromRGB(32, 115, 42), Enum.Material.Grass)
+createFieldPart("BandaExterior", Vector3.new(FIELD_SIZE.X + (FIELD_MARGIN * 2), 0.95, FIELD_SIZE.Y + (FIELD_MARGIN * 2)), Vector3.new(0, -0.05, 0), Color3.fromRGB(32, 115, 42), Enum.Material.Grass)
 
 local halfX = FIELD_SIZE.X / 2
 local halfY = FIELD_SIZE.Y / 2
-local lineThick = 1.2
+local lineThick = 1.0
 local lineH = 0.02
 
 createFieldLine("LineaBandaNorte", Vector3.new(FIELD_SIZE.X, lineH, lineThick), Vector3.new(0, FIELD_Y, -halfY))
@@ -517,10 +529,11 @@ createFieldLine("LineaFondoOeste", Vector3.new(lineThick, lineH, FIELD_SIZE.Y), 
 createFieldLine("LineaFondoEste", Vector3.new(lineThick, lineH, FIELD_SIZE.Y), Vector3.new(halfX, FIELD_Y, 0))
 createFieldLine("LineaCentro", Vector3.new(lineThick, lineH, FIELD_SIZE.Y), Vector3.new(0, FIELD_Y, 0))
 
+-- AroCentralHueco con orientación CFrame en X = 90 grados
 local ringMeshPart = Instance.new("Part")
 ringMeshPart.Name = "AroCentralHueco"
 ringMeshPart.Size = Vector3.new(CENTER_CIRCLE_RADIUS * 2, lineH, CENTER_CIRCLE_RADIUS * 2)
-ringMeshPart.Position = Vector3.new(0, FIELD_Y, 0)
+ringMeshPart.CFrame = CFrame.new(0, FIELD_Y, 0) * CFrame.Angles(math.rad(90), 0, 0)
 ringMeshPart.Color = Color3.fromRGB(245, 245, 245)
 ringMeshPart.Material = Enum.Material.SmoothPlastic
 ringMeshPart.Anchored = true
@@ -533,16 +546,36 @@ ringSpecialMesh.MeshId = "rbxassetid://3270017"
 ringSpecialMesh.Scale = Vector3.new(CENTER_CIRCLE_RADIUS, CENTER_CIRCLE_RADIUS, 0.02)
 ringSpecialMesh.Parent = ringMeshPart
 
+-- Punto central en coordenada (0, 0) relativa al centro
 local centerDot = Instance.new("Part")
 centerDot.Name = "PuntoCentralBalon"
 centerDot.Shape = Enum.PartType.Cylinder
-centerDot.Size = Vector3.new(lineH, 2.4, 2.4)
+centerDot.Size = Vector3.new(lineH, 2.0, 2.0)
 centerDot.CFrame = CFrame.new(0, FIELD_Y, 0) * CFrame.Angles(0, 0, math.rad(90))
 centerDot.Color = Color3.fromRGB(245, 245, 245)
 centerDot.Material = Enum.Material.SmoothPlastic
 centerDot.Anchored = true
 centerDot.CanCollide = false
 centerDot.Parent = pitchFolder
+
+-- Arcos de córner en las 4 esquinas (radio de 3 studs)
+local function makeCornerArc(name: string, posX: number, posZ: number)
+    local corner = Instance.new("Part")
+    corner.Name = name
+    corner.Shape = Enum.PartType.Cylinder
+    corner.Size = Vector3.new(lineH, 6, 6)
+    corner.CFrame = CFrame.new(posX, FIELD_Y, posZ) * CFrame.Angles(0, 0, math.rad(90))
+    corner.Color = Color3.fromRGB(245, 245, 245)
+    corner.Material = Enum.Material.SmoothPlastic
+    corner.Anchored = true
+    corner.CanCollide = false
+    corner.Parent = pitchFolder
+end
+
+makeCornerArc("CornerNW", -halfX, -halfY)
+makeCornerArc("CornerNE", halfX, -halfY)
+makeCornerArc("CornerSW", -halfX, halfY)
+makeCornerArc("CornerSE", halfX, halfY)
 
 local function buildGoalAreas(sideSign: number, teamTag: string)
     local goalLineX = halfX * sideSign
@@ -564,7 +597,7 @@ local function buildGoalAreas(sideSign: number, teamTag: string)
     local penSpot = Instance.new("Part")
     penSpot.Name = "PuntoPenalti_" .. teamTag
     penSpot.Shape = Enum.PartType.Cylinder
-    penSpot.Size = Vector3.new(lineH, 2.0, 2.0)
+    penSpot.Size = Vector3.new(lineH, 1.8, 1.8)
     penSpot.CFrame = CFrame.new(penaltySpotX, FIELD_Y, 0) * CFrame.Angles(0, 0, math.rad(90))
     penSpot.Color = Color3.fromRGB(245, 245, 245)
     penSpot.Material = Enum.Material.SmoothPlastic
@@ -594,15 +627,17 @@ workspace.DescendantAdded:Connect(function(obj)
 end)
 
 local wallY = WALL_HEIGHT / 2
-createFieldPart("MuroNorte", Vector3.new(FIELD_SIZE.X + WALL_THICKNESS*2, WALL_HEIGHT, WALL_THICKNESS), Vector3.new(0, wallY, -halfY - (WALL_THICKNESS/2)), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
-createFieldPart("MuroSur", Vector3.new(FIELD_SIZE.X + WALL_THICKNESS*2, WALL_HEIGHT, WALL_THICKNESS), Vector3.new(0, wallY, halfY + (WALL_THICKNESS/2)), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
+local totalX = FIELD_SIZE.X + (FIELD_MARGIN * 2)
+local totalY = FIELD_SIZE.Y + (FIELD_MARGIN * 2)
+createFieldPart("MuroNorte", Vector3.new(totalX + WALL_THICKNESS*2, WALL_HEIGHT, WALL_THICKNESS), Vector3.new(0, wallY, -(totalY/2) - (WALL_THICKNESS/2)), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
+createFieldPart("MuroSur", Vector3.new(totalX + WALL_THICKNESS*2, WALL_HEIGHT, WALL_THICKNESS), Vector3.new(0, wallY, (totalY/2) + (WALL_THICKNESS/2)), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
 
-local sideWallLen = (FIELD_SIZE.Y - GOAL_WIDTH) / 2
+local sideWallLen = (totalY - GOAL_WIDTH) / 2
 local sideWallOffset = (GOAL_WIDTH + sideWallLen) / 2
-createFieldPart("MuroOesteArriba", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new(-halfX - (WALL_THICKNESS/2), wallY, -sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
-createFieldPart("MuroOesteAbajo", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new(-halfX - (WALL_THICKNESS/2), wallY, sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
-createFieldPart("MuroEsteArriba", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new(halfX + (WALL_THICKNESS/2), wallY, -sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
-createFieldPart("MuroEsteAbajo", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new(halfX + (WALL_THICKNESS/2), wallY, sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
+createFieldPart("MuroOesteArriba", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new(-(totalX/2) - (WALL_THICKNESS/2), wallY, -sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
+createFieldPart("MuroOesteAbajo", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new(-(totalX/2) - (WALL_THICKNESS/2), wallY, sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
+createFieldPart("MuroEsteArriba", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new((totalX/2) + (WALL_THICKNESS/2), wallY, -sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
+createFieldPart("MuroEsteAbajo", Vector3.new(WALL_THICKNESS, WALL_HEIGHT, sideWallLen), Vector3.new((totalX/2) + (WALL_THICKNESS/2), wallY, sideWallOffset), Color3.fromRGB(200, 230, 255), Enum.Material.Glass, 0.5)
 
 local function buildGoal(teamName: string, posX: number, primaryColor: Color3): Part
     local goalFolder = Instance.new("Folder")
@@ -1024,29 +1059,29 @@ local teamRedBots: { [string]: BotSlot } = {}
 
 -- Formación 11v11: 4 Defensas, 3 Centrocampistas, 3 Delanteros + 1 Portero (4-3-3 clásico)
 local FORMATION_WEST: { [string]: { role: string, pos: Vector3 } } = {
-    ["LB"]  = { role = "Defensa", pos = Vector3.new(-165, 3, -75) },
-    ["CB1"] = { role = "Defensa", pos = Vector3.new(-180, 3, -25) },
-    ["CB2"] = { role = "Defensa", pos = Vector3.new(-180, 3, 25)  },
-    ["RB"]  = { role = "Defensa", pos = Vector3.new(-165, 3, 75)  },
-    ["CDM"] = { role = "Central", pos = Vector3.new(-125, 3, 0)   },
-    ["CM1"] = { role = "Central", pos = Vector3.new(-85, 3, -40)  },
-    ["CM2"] = { role = "Central", pos = Vector3.new(-85, 3, 40)   },
-    ["LW"]  = { role = "Delantero", pos = Vector3.new(-35, 3, -65)},
-    ["ST"]  = { role = "Delantero", pos = Vector3.new(-25, 3, 0)  },
-    ["RW"]  = { role = "Delantero", pos = Vector3.new(-35, 3, 65) },
+    ["LB"]  = { role = "Defensa", pos = Vector3.new(-105, 3, -60) },
+    ["CB1"] = { role = "Defensa", pos = Vector3.new(-120, 3, -20) },
+    ["CB2"] = { role = "Defensa", pos = Vector3.new(-120, 3, 20)  },
+    ["RB"]  = { role = "Defensa", pos = Vector3.new(-105, 3, 60)  },
+    ["CDM"] = { role = "Central", pos = Vector3.new(-75, 3, 0)    },
+    ["CM1"] = { role = "Central", pos = Vector3.new(-50, 3, -32)  },
+    ["CM2"] = { role = "Central", pos = Vector3.new(-50, 3, 32)   },
+    ["LW"]  = { role = "Delantero", pos = Vector3.new(-20, 3, -50)},
+    ["ST"]  = { role = "Delantero", pos = Vector3.new(-15, 3, 0)  },
+    ["RW"]  = { role = "Delantero", pos = Vector3.new(-20, 3, 50) },
 }
 
 local FORMATION_EAST: { [string]: { role: string, pos: Vector3 } } = {
-    ["LB"]  = { role = "Defensa", pos = Vector3.new(165, 3, 75)   },
-    ["CB1"] = { role = "Defensa", pos = Vector3.new(180, 3, 25)   },
-    ["CB2"] = { role = "Defensa", pos = Vector3.new(180, 3, -25)  },
-    ["RB"]  = { role = "Defensa", pos = Vector3.new(165, 3, -75)  },
-    ["CDM"] = { role = "Central", pos = Vector3.new(125, 3, 0)    },
-    ["CM1"] = { role = "Central", pos = Vector3.new(85, 3, 40)    },
-    ["CM2"] = { role = "Central", pos = Vector3.new(85, 3, -40)   },
-    ["LW"]  = { role = "Delantero", pos = Vector3.new(35, 3, 65)  },
-    ["ST"]  = { role = "Delantero", pos = Vector3.new(25, 3, 0)   },
-    ["RW"]  = { role = "Delantero", pos = Vector3.new(35, 3, -65) },
+    ["LB"]  = { role = "Defensa", pos = Vector3.new(105, 3, 60)   },
+    ["CB1"] = { role = "Defensa", pos = Vector3.new(120, 3, 20)   },
+    ["CB2"] = { role = "Defensa", pos = Vector3.new(120, 3, -20)  },
+    ["RB"]  = { role = "Defensa", pos = Vector3.new(105, 3, -60)  },
+    ["CDM"] = { role = "Central", pos = Vector3.new(75, 3, 0)     },
+    ["CM1"] = { role = "Central", pos = Vector3.new(50, 3, 32)    },
+    ["CM2"] = { role = "Central", pos = Vector3.new(50, 3, -32)   },
+    ["LW"]  = { role = "Delantero", pos = Vector3.new(20, 3, 50)  },
+    ["ST"]  = { role = "Delantero", pos = Vector3.new(15, 3, 0)   },
+    ["RW"]  = { role = "Delantero", pos = Vector3.new(20, 3, -50) },
 }
 
 local function attachRarityBillboard(head: Part, playerStats: PlayerStats)
