@@ -1114,48 +1114,102 @@ local function createGoalkeeper(teamName: string, posX: number, primaryColor: Co
             local allySlots = if teamName == "Azul" then teamBlueBots else teamRedBots
             local enemySlots = if teamName == "Azul" then teamRedBots else teamBlueBots
 
-            local bestTarget: BasePart? = nil
-            local bestSafety = -999
+            -- Evaluar todas las opciones de pase (Corto a defensas, medio a centrales, o largo a delantero)
+            local candidateSlots: {BotSlot} = {}
+            for _, s in pairs(allyTeamSlots or allySlots) do
+                if s.model and s.model.Parent then
+                    table.insert(candidateSlots, s)
+                end
+            end
 
-            -- Priorizar pases seguros a Defensas o Centrales
-            local options = { allySlots["DEF1"], allySlots["DEF3"], allySlots["CM1"], allySlots["CM2"], allySlots["DEF2"] }
-            for _, cand in ipairs(options) do
-                if cand and cand.model and cand.model.Parent then
-                    local cHrp = cand.model:FindFirstChild("HumanoidRootPart") :: BasePart?
-                    if cHrp then
-                        -- Medir distancia al rival más cercano para garantizar que esté libre
-                        local minRivalDist = 999
-                        for _, eSlot in pairs(enemySlots) do
-                            if eSlot.model and eSlot.model.Parent then
-                                local eHrp = eSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
-                                if eHrp then
-                                    local dist = (eHrp.Position - cHrp.Position).Magnitude
-                                    if dist < minRivalDist then minRivalDist = dist end
+            local bestTarget: BasePart? = nil
+            local bestScore = -9999
+            local isShortPass = true
+
+            for _, cand in ipairs(candidateSlots) do
+                local cHrp = cand.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                if cHrp then
+                    local distToGk = (cHrp.Position - hrp.Position).Magnitude
+                    local toCandDir = (cHrp.Position - hrp.Position).Unit
+
+                    -- Medir si hay rivales tapando la línea de pase o presionando al compañero
+                    local minRivalDist = 999
+                    local lineBlocked = false
+
+                    for _, eSlot in pairs(enemySlots) do
+                        if eSlot.model and eSlot.model.Parent then
+                            local eHrp = eSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                            if eHrp then
+                                local rivalDist = (eHrp.Position - cHrp.Position).Magnitude
+                                if rivalDist < minRivalDist then minRivalDist = rivalDist end
+
+                                -- Comprobar si intercepta en medio
+                                local toEnemy = eHrp.Position - hrp.Position
+                                local proj = toEnemy:Dot(toCandDir)
+                                if proj > 0 and proj < distToGk then
+                                    local perpDist = (toEnemy - (toCandDir * proj)).Magnitude
+                                    if perpDist < 12 then lineBlocked = true end
                                 end
                             end
                         end
+                    end
 
-                        local safetyScore = minRivalDist
-                        if safetyScore > bestSafety then
-                            bestSafety = safetyScore
+                    if not lineBlocked and minRivalDist > 14 then
+                        -- Ponderación: Prioriza pase en corto (35 a 90 studs) para salir jugando
+                        local score = minRivalDist
+                        if distToGk > 30 and distToGk < 95 then
+                            score = score + 45 -- Bonificación de pase corto seguro
+                        elseif distToGk >= 95 and distToGk < 180 then
+                            score = score + 20 -- Opción de pase largo si el delantero está solo
+                        else
+                            score = score - 30 -- Demasiado pegado o excesivamente lejos
+                        end
+
+                        if score > bestScore then
+                            bestScore = score
                             bestTarget = cHrp
+                            isShortPass = (distToGk < 95)
                         end
                     end
                 end
             end
 
             local outwardX = if posX < 0 then 1 else -1
-            local targetPos = if bestTarget then bestTarget.Position + Vector3.new(outwardX * 8, 0, 0) else Vector3.new(0, 3, 0)
-            local flatDir = Vector3.new(targetPos.X - hrp.Position.X, 0, targetPos.Z - hrp.Position.Z)
-            local dist = flatDir.Magnitude
-            local unitDir = if dist > 0.1 then flatDir.Unit else Vector3.new(outwardX, 0, 0)
+            local targetPos: Vector3
+            local dist: number
+            local unitDir: Vector3
 
-            local speed = math.clamp(dist * 1.7, 70, 135)
-            local liftY = if dist > 50 then 22 else 6
+            if bestTarget then
+                targetPos = bestTarget.Position
+                local flatDir = Vector3.new(targetPos.X - hrp.Position.X, 0, targetPos.Z - hrp.Position.Z)
+                dist = flatDir.Magnitude
+                unitDir = flatDir.Unit
+            else
+                -- Si no hay pase seguro, saque largo hacia banda contraria para no comprometer el arco
+                targetPos = Vector3.new(outwardX * 40, 3, math.random(-40, 40))
+                local flatDir = Vector3.new(targetPos.X - hrp.Position.X, 0, targetPos.Z - hrp.Position.Z)
+                dist = flatDir.Magnitude
+                unitDir = flatDir.Unit
+                isShortPass = false
+            end
 
-            currentBall.CFrame = currentBall.CFrame + (unitDir * 2.5) + Vector3.new(0, 1.2, 0)
+            -- Calibrar fuerza para que llegue al pie y no vuele al infinito
+            local speed: number
+            local liftY: number
+
+            if isShortPass then
+                -- Pase raso al pie controlado
+                speed = math.clamp(dist * 1.5, 45, 80)
+                liftY = 4
+            else
+                -- Pase medio/largo bombeado
+                speed = math.clamp(dist * 1.35, 75, 115)
+                liftY = 16
+            end
+
+            currentBall.CFrame = currentBall.CFrame + (unitDir * 2.5) + Vector3.new(0, 0.6, 0)
             currentBall.AssemblyLinearVelocity = (unitDir * speed) + Vector3.new(0, liftY, 0)
-            currentBall.AssemblyAngularVelocity = Vector3.new(-unitDir.Z, 0, unitDir.X) * 35
+            currentBall.AssemblyAngularVelocity = Vector3.new(-unitDir.Z, 0, unitDir.X) * 20
 
             task.delay(0.5, function()
                 isKickOnCooldown = false
@@ -1319,17 +1373,18 @@ local function executePass(passerSlot: BotSlot, targetSlot: BotSlot)
     isKickOnCooldown = true
 
     local targetVel = targetHrp.AssemblyLinearVelocity
-    local leadTime = math.clamp((targetHrp.Position - passerHrp.Position).Magnitude / 65, 0.2, 0.6)
+    local dist = (targetHrp.Position - passerHrp.Position).Magnitude
+    local leadTime = math.clamp(dist / 60, 0.15, 0.45)
     local leadPos = targetHrp.Position + Vector3.new(targetVel.X, 0, targetVel.Z) * leadTime
 
     local passDir = (leadPos - passerHrp.Position)
-    local dist = passDir.Magnitude
-    local unitDir = if dist > 0.1 then passDir.Unit else passerHrp.CFrame.LookVector
+    local unitDir = if passDir.Magnitude > 0.1 then passDir.Unit else passerHrp.CFrame.LookVector
 
-    local passSpeed = math.clamp(dist * 1.8, 60, 125)
-    local lift = if dist > 45 then 12 else 4
+    -- Si es pase corto (<60 studs), pase raso controlado para que no se pase
+    local passSpeed = if dist < 65 then math.clamp(dist * 1.35, 45, 75) else math.clamp(dist * 1.5, 70, 110)
+    local lift = if dist > 65 then 8 else 2
 
-    currentBall.CFrame = currentBall.CFrame + (unitDir * 2.2) + Vector3.new(0, 0.5, 0)
+    currentBall.CFrame = currentBall.CFrame + (unitDir * 2.2) + Vector3.new(0, 0.4, 0)
     currentBall.AssemblyLinearVelocity = (unitDir * passSpeed) + Vector3.new(0, lift, 0)
 
     passerSlot.lastPassTime = os.clock()
@@ -1341,16 +1396,27 @@ local function executeClearance(botSlot: BotSlot, enemyGoalPos: Vector3)
     local hrp = botSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
     if not hrp then return end
 
+    -- Comprobar si tiene pase corto seguro antes de despejar a lo loco
+    local allySlots = if botSlot.teamName == "Azul" then teamBlueBots else teamRedBots
+    local enemySlots = if botSlot.teamName == "Azul" then teamRedBots else teamBlueBots
+    local safePassTarget, score = findBestPassTarget(botSlot, allySlots, enemySlots)
+    if safePassTarget and score > 20 then
+        executePass(botSlot, safePassTarget)
+        return
+    end
+
     releaseBall()
     isKickOnCooldown = true
 
-    local clearDir = (enemyGoalPos - hrp.Position).Unit
-    local liftY = math.random(32, 45)
-    local speed = math.random(110, 150)
+    -- Despeje táctico dirigido hacia una banda en campo rival
+    local flankTarget = enemyGoalPos + Vector3.new(0, 0, if math.random() > 0.5 then 55 else -55)
+    local clearDir = (flankTarget - hrp.Position).Unit
+    local liftY = math.random(24, 34)
+    local speed = math.random(90, 120)
 
-    currentBall.CFrame = currentBall.CFrame + (clearDir * 2.5) + Vector3.new(0, 1.2, 0)
+    currentBall.CFrame = currentBall.CFrame + (clearDir * 2.5) + Vector3.new(0, 1.0, 0)
     currentBall.AssemblyLinearVelocity = (clearDir * speed) + Vector3.new(0, liftY, 0)
-    currentBall.AssemblyAngularVelocity = Vector3.new(-clearDir.Z, 0, clearDir.X) * 40
+    currentBall.AssemblyAngularVelocity = Vector3.new(-clearDir.Z, 0, clearDir.X) * 35
 
     task.delay(0.5, function() isKickOnCooldown = false end)
 end
