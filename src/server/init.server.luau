@@ -445,22 +445,22 @@ for _, p in ipairs(Players:GetPlayers()) do
 end
 
 --------------------------------------------------------------------------------
--- 2. CONSTRUCCIÓN DEL GRAN ESTADIO REGLAMENTARIO
+-- 2. CONSTRUCCIÓN DEL GRAN ESTADIO REGLAMENTARIO (AMPLIADO A 480 x 280)
 --------------------------------------------------------------------------------
-local FIELD_SIZE = Vector2.new(380, 230)
-local WALL_HEIGHT = 28
+local FIELD_SIZE = Vector2.new(480, 280)
+local WALL_HEIGHT = 32
 local WALL_THICKNESS = 3
 
-local GOAL_WIDTH = 42
-local GOAL_HEIGHT = 15
-local GOAL_DEPTH = 18
+local GOAL_WIDTH = 48
+local GOAL_HEIGHT = 16
+local GOAL_DEPTH = 20
 
-local PENALTY_AREA_DEPTH = 62
-local PENALTY_AREA_WIDTH = 140
-local GOAL_AREA_DEPTH = 24
-local GOAL_AREA_WIDTH = 70
-local PENALTY_SPOT_DIST = 40
-local CENTER_CIRCLE_RADIUS = 34
+local PENALTY_AREA_DEPTH = 75
+local PENALTY_AREA_WIDTH = 160
+local GOAL_AREA_DEPTH = 28
+local GOAL_AREA_WIDTH = 80
+local PENALTY_SPOT_DIST = 48
+local CENTER_CIRCLE_RADIUS = 40
 
 local FIELD_Y = 0.51
 
@@ -810,15 +810,15 @@ local characterStats: { [Model]: PlayerStats } = {}
 local characterClub: { [Model]: string } = {}
 
 local function getWalkSpeedFromStat(speedStat: number): number
-    return 18 + (speedStat / 100) * 14 -- 24 a 32 studs/s
+    return 20 + (speedStat / 100) * 16 -- 26 a 36 studs/s
 end
 
 local function getStealRadiusFromStat(defenseStat: number): number
-    return 7.0 + (defenseStat / 100) * 4.5 -- 8.5 a 11.5 studs
+    return 10.0 + (defenseStat / 100) * 6.0 -- 14 a 16 studs (defensa más contundente)
 end
 
 local function getStealCooldownFromStat(defenseStat: number): number
-    return 2.4 - (defenseStat / 100) * 1.4 -- 1.0s a 1.8s
+    return 1.4 - (defenseStat / 100) * 0.8 -- 0.6s a 1.0s (recuperación rápida)
 end
 
 local function getShotPowerMultiplier(shotStat: number): number
@@ -1017,27 +1017,36 @@ local function attachBallToPlayer(character: Model)
 end
 
 --------------------------------------------------------------------------------
--- 10. FORMACIONES Y CONSTRUCCIÓN DE BOTS CON RAREZA E ICONOS
+-- 10. FORMACIONES Y CONSTRUCCIÓN DE BOTS 11v11 CON RAREZA E ICONOS
 --------------------------------------------------------------------------------
 local teamBlueBots: { [string]: BotSlot } = {}
 local teamRedBots: { [string]: BotSlot } = {}
 
+-- Formación 11v11: 4 Defensas, 3 Centrocampistas, 3 Delanteros + 1 Portero (4-3-3 clásico)
 local FORMATION_WEST: { [string]: { role: string, pos: Vector3 } } = {
-    ["DEF1"] = { role = "Defensa", pos = Vector3.new(-130, 3, -50) },
-    ["DEF2"] = { role = "Defensa", pos = Vector3.new(-140, 3, 0)   },
-    ["DEF3"] = { role = "Defensa", pos = Vector3.new(-130, 3, 50)  },
-    ["CM1"]  = { role = "Central", pos = Vector3.new(-75, 3, -32)  },
-    ["CM2"]  = { role = "Central", pos = Vector3.new(-75, 3, 32)   },
-    ["ST"]   = { role = "Delantero", pos = Vector3.new(-25, 3, 0)  },
+    ["LB"]  = { role = "Defensa", pos = Vector3.new(-165, 3, -75) },
+    ["CB1"] = { role = "Defensa", pos = Vector3.new(-180, 3, -25) },
+    ["CB2"] = { role = "Defensa", pos = Vector3.new(-180, 3, 25)  },
+    ["RB"]  = { role = "Defensa", pos = Vector3.new(-165, 3, 75)  },
+    ["CDM"] = { role = "Central", pos = Vector3.new(-125, 3, 0)   },
+    ["CM1"] = { role = "Central", pos = Vector3.new(-85, 3, -40)  },
+    ["CM2"] = { role = "Central", pos = Vector3.new(-85, 3, 40)   },
+    ["LW"]  = { role = "Delantero", pos = Vector3.new(-35, 3, -65)},
+    ["ST"]  = { role = "Delantero", pos = Vector3.new(-25, 3, 0)  },
+    ["RW"]  = { role = "Delantero", pos = Vector3.new(-35, 3, 65) },
 }
 
 local FORMATION_EAST: { [string]: { role: string, pos: Vector3 } } = {
-    ["DEF1"] = { role = "Defensa", pos = Vector3.new(130, 3, 50)   },
-    ["DEF2"] = { role = "Defensa", pos = Vector3.new(140, 3, 0)    },
-    ["DEF3"] = { role = "Defensa", pos = Vector3.new(130, 3, -50)  },
-    ["CM1"]  = { role = "Central", pos = Vector3.new(75, 3, 32)   },
-    ["CM2"]  = { role = "Central", pos = Vector3.new(75, 3, -32)  },
-    ["ST"]   = { role = "Delantero", pos = Vector3.new(25, 3, 0)   },
+    ["LB"]  = { role = "Defensa", pos = Vector3.new(165, 3, 75)   },
+    ["CB1"] = { role = "Defensa", pos = Vector3.new(180, 3, 25)   },
+    ["CB2"] = { role = "Defensa", pos = Vector3.new(180, 3, -25)  },
+    ["RB"]  = { role = "Defensa", pos = Vector3.new(165, 3, -75)  },
+    ["CDM"] = { role = "Central", pos = Vector3.new(125, 3, 0)    },
+    ["CM1"] = { role = "Central", pos = Vector3.new(85, 3, 40)    },
+    ["CM2"] = { role = "Central", pos = Vector3.new(85, 3, -40)   },
+    ["LW"]  = { role = "Delantero", pos = Vector3.new(35, 3, 65)  },
+    ["ST"]  = { role = "Delantero", pos = Vector3.new(25, 3, 0)   },
+    ["RW"]  = { role = "Delantero", pos = Vector3.new(35, 3, -65) },
 }
 
 local function attachRarityBillboard(head: Part, playerStats: PlayerStats)
@@ -1461,7 +1470,7 @@ local function resetPositionsToField()
         local pChar = p.Character
         local pHrp = pChar and pChar:FindFirstChild("HumanoidRootPart") :: BasePart?
         if pHrp then
-            pHrp.CFrame = CFrame.new(0, -60, 0)
+            pHrp.CFrame = CFrame.new(0, 180, 0)
             pHrp.AssemblyLinearVelocity = Vector3.zero
         end
     end
@@ -1898,30 +1907,30 @@ local function getTacticalPosition(
 
     elseif role == "Central" then
         if hasTeamPossession then
-            if slot.roleId == "CM1" then
-                local advancedX = (ballPos.X * 0.6) + (45 * attackDirX)
-                return Vector3.new(math.clamp(advancedX, -halfX + 75, halfX - 75), 3, base.Z + (ballPos.Z * 0.2))
+            if slot.roleId == "CDM" then
+                local safeX = (ballPos.X * 0.4) + (25 * attackDirX)
+                return Vector3.new(math.clamp(safeX, -halfX + 70, halfX - 70), 3, base.Z * 0.5)
             else
-                local safeX = (ballPos.X * 0.5) + (10 * attackDirX)
-                return Vector3.new(math.clamp(safeX, -halfX + 55, halfX - 55), 3, base.Z * 0.8)
+                local advancedX = (ballPos.X * 0.65) + (50 * attackDirX)
+                return Vector3.new(math.clamp(advancedX, -halfX + 85, halfX - 85), 3, base.Z + (ballPos.Z * 0.15))
             end
         elseif hasEnemyPossession then
             local ownGoalX = -enemyGoalPos.X
-            local shieldX = ownGoalX + (75 * attackDirX)
-            return Vector3.new(shieldX, 3, base.Z * 0.8)
+            local shieldX = ownGoalX + (85 * attackDirX)
+            return Vector3.new(shieldX, 3, base.Z * 0.7)
         else
-            return Vector3.new(base.X + (20 * attackDirX), 3, base.Z)
+            return Vector3.new(base.X + (25 * attackDirX), 3, base.Z)
         end
 
     elseif role == "Defensa" then
         if hasEnemyPossession then
             local ownGoalX = -enemyGoalPos.X
-            local defLineX = ownGoalX + (55 * attackDirX)
-            local shiftedZ = math.clamp(base.Z + (ballPos.Z * 0.35), -60, 60)
+            local defLineX = ownGoalX + (50 * attackDirX)
+            local shiftedZ = math.clamp(base.Z + (ballPos.Z * 0.4), -95, 95)
             return Vector3.new(defLineX, 3, shiftedZ)
         elseif hasTeamPossession then
             local ownGoalX = -enemyGoalPos.X
-            local advancedLineX = ownGoalX + (105 * attackDirX)
+            local advancedLineX = ownGoalX + (120 * attackDirX)
             return Vector3.new(advancedLineX, 3, base.Z)
         else
             return base
@@ -2061,6 +2070,16 @@ local function updateBotSlotAI(
                 return
             end
         else
+            -- Si es defensa y el balón se acerca a su área (menos de 65 studs), entra a tapar o robar
+            if slot.role == "Defensa" and distToBall < 60 then
+                humanoid:MoveTo(ballPos)
+                if distToBall < stealRadius and (now - slot.lastStealTime >= stealCooldown) and not isKickOnCooldown then
+                    slot.lastStealTime = now
+                    attachBallToPlayer(bot)
+                    return
+                end
+            end
+
             local tacticalPos = getTacticalPosition(slot, false, true, ballPos, enemyGoalPos)
             humanoid:MoveTo(tacticalPos)
             return
@@ -2547,8 +2566,14 @@ end)
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
         local hrp = character:WaitForChild("HumanoidRootPart", 5) :: BasePart?
+        local hum = character:WaitForChild("Humanoid", 5) :: Humanoid?
         if hrp then
-            hrp.CFrame = CFrame.new(0, -60, 0)
+            hrp.Anchored = true
+            hrp.CFrame = CFrame.new(0, 180, 0)
+        end
+        if hum then
+            hum.MaxHealth = math.huge
+            hum.Health = math.huge
         end
     end)
     player.Chatted:Connect(function(msg)

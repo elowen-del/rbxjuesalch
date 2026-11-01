@@ -93,8 +93,14 @@ end)
 
 local function setupCharacter(character: Model)
     local hrp = character:WaitForChild("HumanoidRootPart", 5) :: BasePart?
+    local hum = character:WaitForChild("Humanoid", 5) :: Humanoid?
     if hrp then
-        hrp.CFrame = CFrame.new(0, -60, 0)
+        hrp.Anchored = true
+        hrp.CFrame = CFrame.new(0, 180, 0)
+    end
+    if hum then
+        hum.MaxHealth = math.huge
+        hum.Health = math.huge
     end
     for _, part in ipairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
