@@ -1950,12 +1950,16 @@ local function getTacticalPosition(
             elseif roleId == "LW" then
                 -- Extremo izquierdo pegado a banda o diagonal interior si el balón viene del centro
                 targetZ = if ballPos.Z > 20 then 68 else 48
-                local advX = math.clamp(ballPos.X + (30 * attackDirX), -halfX + 40, (halfX - 35) * attackDirX)
+                local minX = math.min(-halfX + 40, (halfX - 35) * attackDirX)
+                local maxX = math.max(-halfX + 40, (halfX - 35) * attackDirX)
+                local advX = math.clamp(ballPos.X + (30 * attackDirX), minX, maxX)
                 return Vector3.new(advX, 3, targetZ)
             elseif roleId == "RW" then
                 -- Extremo derecho pegado a banda o diagonal interior
                 targetZ = if ballPos.Z < -20 then -68 else -48
-                local advX = math.clamp(ballPos.X + (30 * attackDirX), -halfX + 40, (halfX - 35) * attackDirX)
+                local minX = math.min(-halfX + 40, (halfX - 35) * attackDirX)
+                local maxX = math.max(-halfX + 40, (halfX - 35) * attackDirX)
+                local advX = math.clamp(ballPos.X + (30 * attackDirX), minX, maxX)
                 return Vector3.new(advX, 3, targetZ)
             else
                 local attackX = (halfX - 30) * attackDirX
