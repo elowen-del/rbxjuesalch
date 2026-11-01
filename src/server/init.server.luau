@@ -1755,10 +1755,10 @@ local function findBestPassTarget(
                             canPass = false
                         end
                     else
-                        local isFlank = math.abs(passerPos.Z) > 52
-                        local candidateInBox = (candidate.role == "Delantero" and math.abs(cHrp.Position.Z) < 35)
+                        local isFlank = math.abs(passerPos.Z) > 42
+                        local candidateInBox = (candidate.role == "Delantero" and math.abs(cHrp.Position.Z) < 40)
 
-                        if isFlank and candidateInBox and dist > 35 then
+                        if isFlank and candidateInBox and dist > 28 then
                             passType = "cross"
                         elseif dist < 45 and tactic.preferShortPass then
                             passType = "short_ground"
@@ -1773,8 +1773,9 @@ local function findBestPassTarget(
                         local forwardBonus = if passerSlot.teamName == "Azul" then (cHrp.Position.X - passerPos.X) else (passerPos.X - cHrp.Position.X)
                         local roleBonus = if candidate.role == "Delantero" then 45 elseif candidate.role == "Central" then 25 else 10
                         local tacticBonus = if tactic.preferShortPass and dist < 45 then 30 else 0
+                        local crossBonus = if passType == "cross" then 40 else 0
 
-                        local totalScore = forwardBonus + roleBonus + tacticBonus - (dist * 0.15)
+                        local totalScore = forwardBonus + roleBonus + tacticBonus + crossBonus - (dist * 0.15)
                         if totalScore > bestScore then
                             bestScore = totalScore
                             bestTarget = candidate
@@ -1948,18 +1949,18 @@ local function getTacticalPosition(
                 targetZ = if ballPos.Z > 10 then -18 elseif ballPos.Z < -10 then 18 else (if math.sin(os.clock() * 1.5) > 0 then 15 else -15)
                 return Vector3.new(leadX, 3, targetZ)
             elseif roleId == "LW" then
-                -- Extremo izquierdo pegado a banda o diagonal interior si el balón viene del centro
-                targetZ = if ballPos.Z > 20 then 68 else 48
-                local minX = math.min(-halfX + 40, (halfX - 35) * attackDirX)
-                local maxX = math.max(-halfX + 40, (halfX - 35) * attackDirX)
-                local advX = math.clamp(ballPos.X + (30 * attackDirX), minX, maxX)
+                -- Extremo izquierdo pegado a banda para desbordar y centrar (amplitud máxima)
+                targetZ = 78
+                local minX = math.min(-halfX + 45, (halfX - 25) * attackDirX)
+                local maxX = math.max(-halfX + 45, (halfX - 25) * attackDirX)
+                local advX = math.clamp(ballPos.X + (35 * attackDirX), minX, maxX)
                 return Vector3.new(advX, 3, targetZ)
             elseif roleId == "RW" then
-                -- Extremo derecho pegado a banda o diagonal interior
-                targetZ = if ballPos.Z < -20 then -68 else -48
-                local minX = math.min(-halfX + 40, (halfX - 35) * attackDirX)
-                local maxX = math.max(-halfX + 40, (halfX - 35) * attackDirX)
-                local advX = math.clamp(ballPos.X + (30 * attackDirX), minX, maxX)
+                -- Extremo derecho pegado a banda para desbordar y centrar (amplitud máxima)
+                targetZ = -78
+                local minX = math.min(-halfX + 45, (halfX - 25) * attackDirX)
+                local maxX = math.max(-halfX + 45, (halfX - 25) * attackDirX)
+                local advX = math.clamp(ballPos.X + (35 * attackDirX), minX, maxX)
                 return Vector3.new(advX, 3, targetZ)
             else
                 local attackX = (halfX - 30) * attackDirX
@@ -2169,6 +2170,7 @@ local function updateBotSlotAI(
         local stealCooldown = getStealCooldownFromStat(botStats.defense)
 
         if designatedPresser == slot and currentOwner then
+            -- Solo el presser designado va a por el balón agresivamente
             local carrierHrp = currentOwner:FindFirstChild("HumanoidRootPart") :: BasePart?
             if carrierHrp then
                 humanoid:MoveTo(carrierHrp.Position)
@@ -2179,16 +2181,34 @@ local function updateBotSlotAI(
                 return
             end
         else
-            -- Si es defensa y el balón se acerca a su área (menos de 65 studs), entra a tapar o robar
-            if slot.role == "Defensa" and distToBall < 60 then
-                humanoid:MoveTo(ballPos)
-                if distToBall < stealRadius and (now - slot.lastStealTime >= stealCooldown) and not isKickOnCooldown then
-                    slot.lastStealTime = now
-                    attachBallToPlayer(bot)
-                    return
+            -- Marcaje zonal / al hombre: NO amontonarse
+            -- Si es defensa, busca tapar al rival más cercano a su zona o guardar la línea
+            local bestMarkTarget: Vector3? = nil
+            local nearestOpponentDist = 999
+
+            for _, oppSlot in pairs(enemyTeam) do
+                if oppSlot.model and oppSlot.model ~= currentOwner and oppSlot.model.Parent then
+                    local oppHrp = oppSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                    if oppHrp then
+                        -- ¿Está este rival cerca de la zona asignada a este defensor?
+                        local distToZone = (oppHrp.Position - slot.basePosition).Magnitude
+                        if distToZone < 65 and distToZone < nearestOpponentDist then
+                            nearestOpponentDist = distToZone
+                            -- Posicionarse entre el rival y la portería propia (intercepción / tapar pase)
+                            local ownGoalX = -enemyGoalPos.X
+                            local toGoal = (Vector3.new(ownGoalX, 3, 0) - oppHrp.Position).Unit
+                            bestMarkTarget = oppHrp.Position + (toGoal * 8)
+                        end
+                    end
                 end
             end
 
+            if bestMarkTarget then
+                humanoid:MoveTo(bestMarkTarget)
+                return
+            end
+
+            -- Si no hay marca directa, mantener la posición táctica ordenada
             local tacticalPos = getTacticalPosition(slot, false, true, ballPos, enemyGoalPos)
             humanoid:MoveTo(tacticalPos)
             return
@@ -2199,7 +2219,8 @@ local function updateBotSlotAI(
     if currentOwner == nil and currentBall then
         local stealRadius = getStealRadiusFromStat(botStats.defense)
 
-        if designatedPresser == slot or distToBall < 45 then
+        -- Solo acude el presser designado o si el balón está muy pegado (< 20 studs)
+        if designatedPresser == slot or distToBall < 20 then
             local bVel = currentBall.AssemblyLinearVelocity
             local interceptPos = if bVel.Magnitude > 10 then ballPos + Vector3.new(bVel.X, 0, bVel.Z) * 0.4 else ballPos
             humanoid:MoveTo(interceptPos)
