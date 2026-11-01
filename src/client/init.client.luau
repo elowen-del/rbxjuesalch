@@ -121,6 +121,7 @@ local shotCooldownEvent = remoteFolder:WaitForChild("ShotCooldown", 15) :: Remot
 local matchTimeEvent = remoteFolder:WaitForChild("MatchTimeUpdate", 15) :: RemoteEvent
 local goalAnnouncementEvent = remoteFolder:WaitForChild("GoalAnnouncement", 15) :: RemoteEvent
 local toggleMatchEvent = remoteFolder:WaitForChild("ToggleMatch", 15) :: RemoteEvent
+local foulAnnouncementEvent = remoteFolder:WaitForChild("FoulAnnouncement", 15) :: RemoteEvent
 
 --------------------------------------------------------------------------------
 -- 3. INTERFAZ GRÁFICA TELEVISIVA: MARCADOR + RELOJ + NOMBRES DE CLUBES
@@ -382,6 +383,85 @@ goalAnnouncementEvent.OnClientEvent:Connect(function(scorerName: string, clubNam
         tweenOut:Play()
         tweenOut.Completed:Connect(function()
             goalAnnounceFrame.Visible = false
+        end)
+    end)
+end)
+
+--------------------------------------------------------------------------------
+-- 4.1 BANNER DE ANUNCIO DE FALTA Y PENALTI
+--------------------------------------------------------------------------------
+local foulAnnounceFrame = Instance.new("Frame")
+foulAnnounceFrame.Name = "FoulAnnouncementFrame"
+foulAnnounceFrame.Size = UDim2.new(0, 520, 0, 80)
+foulAnnounceFrame.Position = UDim2.new(0.5, -260, 0.05, 0)
+foulAnnounceFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+foulAnnounceFrame.BorderSizePixel = 0
+foulAnnounceFrame.Visible = false
+foulAnnounceFrame.ZIndex = 25
+foulAnnounceFrame.Parent = screenGui
+
+local foulCorner = Instance.new("UICorner")
+foulCorner.CornerRadius = UDim.new(0, 10)
+foulCorner.Parent = foulAnnounceFrame
+
+local foulStroke = Instance.new("UIStroke")
+foulStroke.Name = "FoulStroke"
+foulStroke.Color = Color3.fromRGB(255, 215, 0)
+foulStroke.Thickness = 3
+foulStroke.Parent = foulAnnounceFrame
+
+local foulTitleLabel = Instance.new("TextLabel")
+foulTitleLabel.Name = "FoulTitle"
+foulTitleLabel.Size = UDim2.new(1, 0, 0, 42)
+foulTitleLabel.Position = UDim2.new(0, 0, 0, 6)
+foulTitleLabel.BackgroundTransparency = 1
+foulTitleLabel.Text = "¡FALTA!"
+foulTitleLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+foulTitleLabel.Font = Enum.Font.GothamBlack
+foulTitleLabel.TextSize = 28
+foulTitleLabel.ZIndex = 26
+foulTitleLabel.Parent = foulAnnounceFrame
+
+local foulDescLabel = Instance.new("TextLabel")
+foulDescLabel.Name = "FoulDesc"
+foulDescLabel.Size = UDim2.new(1, -20, 0, 26)
+foulDescLabel.Position = UDim2.new(0, 10, 0, 48)
+foulDescLabel.BackgroundTransparency = 1
+foulDescLabel.Text = "Infracción sancionada por el árbitro"
+foulDescLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+foulDescLabel.Font = Enum.Font.GothamBold
+foulDescLabel.TextSize = 14
+foulDescLabel.ZIndex = 26
+foulDescLabel.Parent = foulAnnounceFrame
+
+foulAnnouncementEvent.OnClientEvent:Connect(function(titleText: string, descText: string, isPenalty: boolean)
+    foulTitleLabel.Text = titleText
+    foulDescLabel.Text = descText
+
+    if isPenalty then
+        foulTitleLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        foulStroke.Color = Color3.fromRGB(255, 60, 60)
+        foulAnnounceFrame.BackgroundColor3 = Color3.fromRGB(35, 12, 12)
+    else
+        foulTitleLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+        foulStroke.Color = Color3.fromRGB(255, 215, 0)
+        foulAnnounceFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    end
+
+    foulAnnounceFrame.Position = UDim2.new(0.5, -260, 0.04, 0)
+    foulAnnounceFrame.Visible = true
+
+    TweenService:Create(foulAnnounceFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -260, 0.13, 0)
+    }):Play()
+
+    task.delay(3.2, function()
+        local tweenOut = TweenService:Create(foulAnnounceFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Position = UDim2.new(0.5, -260, 0.04, 0)
+        })
+        tweenOut:Play()
+        tweenOut.Completed:Connect(function()
+            foulAnnounceFrame.Visible = false
         end)
     end)
 end)

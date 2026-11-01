@@ -487,16 +487,16 @@ local GOAL_WIDTH = 22
 local GOAL_HEIGHT = 12
 local GOAL_DEPTH = 14
 
--- Área grande (Penal): 50 studs de ancho por 25 studs de profundidad
-local PENALTY_AREA_DEPTH = 25
-local PENALTY_AREA_WIDTH = 50
+-- Área grande (Penal): 80 studs de ancho por 40 studs de profundidad (áreas más amplias)
+local PENALTY_AREA_DEPTH = 40
+local PENALTY_AREA_WIDTH = 80
 
--- Área pequeña (Meta): 20 studs de ancho por 10 studs de profundidad
-local GOAL_AREA_DEPTH = 10
-local GOAL_AREA_WIDTH = 20
+-- Área pequeña (Meta): 30 studs de ancho por 16 studs de profundidad
+local GOAL_AREA_DEPTH = 16
+local GOAL_AREA_WIDTH = 30
 
--- Punto de penal: Ubicado a 35 studs de la línea de meta
-local PENALTY_SPOT_DIST = 35
+-- Punto de penal: Ubicado a 30 studs de la línea de meta
+local PENALTY_SPOT_DIST = 30
 
 -- Círculo central: Radio de 30 studs
 local CENTER_CIRCLE_RADIUS = 30
@@ -760,6 +760,53 @@ local shotCooldownEvent = getOrCreateRemote("ShotCooldown")
 local matchTimeEvent = getOrCreateRemote("MatchTimeUpdate")
 local goalAnnouncementEvent = getOrCreateRemote("GoalAnnouncement")
 local toggleMatchEvent = getOrCreateRemote("ToggleMatch")
+local foulAnnouncementEvent = getOrCreateRemote("FoulAnnouncement")
+
+--------------------------------------------------------------------------------
+-- 3.1 SONIDOS Y SILBATO DEL ÁRBITRO
+--------------------------------------------------------------------------------
+local function playWhistleSound(whistleType: string)
+    task.spawn(function()
+        pcall(function()
+            local sound = Instance.new("Sound")
+            sound.Name = "WhistleSound"
+            -- ID de audio limpio de silbato de árbitro / silbato deportivo
+            sound.SoundId = "rbxassetid://9114223175"
+            sound.Volume = 0.85
+            sound.RollOffMaxDistance = 500
+            sound.Parent = workspace
+
+            if whistleType == "short" then
+                sound.PlaybackSpeed = 1.05
+                sound:Play()
+                task.wait(0.65)
+                sound:Stop()
+                sound:Destroy()
+            elseif whistleType == "double" then
+                sound.PlaybackSpeed = 1.1
+                sound:Play()
+                task.wait(0.25)
+                sound:Stop()
+                task.wait(0.1)
+                sound:Play()
+                task.wait(0.5)
+                sound:Stop()
+                sound:Destroy()
+            elseif whistleType == "long" then
+                sound.PlaybackSpeed = 0.95
+                sound:Play()
+                task.wait(1.5)
+                sound:Stop()
+                sound:Destroy()
+            else
+                sound:Play()
+                task.wait(0.8)
+                sound:Stop()
+                sound:Destroy()
+            end
+        end)
+    end)
+end
 
 --------------------------------------------------------------------------------
 -- 4. CLUBES Y GRADAS CON ESPECTADORES
@@ -2439,7 +2486,192 @@ local function getAssignedMarkTarget(slot: BotSlot, enemyTeam: { [string]: BotSl
     return closest
 end
 
-local function updateBotSlotAI(
+--------------------------------------------------------------------------------
+-- 16.1 SISTEMA DE FALTAS Y PENALTIS (Fouls & Penalties)
+--------------------------------------------------------------------------------
+local function isInsidePenaltyBox(pos: Vector3): boolean
+    local halfW = PENALTY_AREA_WIDTH / 2
+    local inZ = (math.abs(pos.Z) <= halfW)
+    if not inZ then return false end
+
+    -- Área izquierda (Oeste)
+    local leftMinX = -halfX
+    local leftMaxX = -halfX + PENALTY_AREA_DEPTH
+    if pos.X >= leftMinX and pos.X <= leftMaxX then return true end
+
+    -- Área derecha (Este)
+    local rightMinX = halfX - PENALTY_AREA_DEPTH
+    local rightMaxX = halfX
+    if pos.X >= rightMinX and pos.X <= rightMaxX then return true end
+
+    return false
+end
+
+local isSetPieceActive = false
+
+local function triggerFoul(foulerSlot: BotSlot, fouledModel: Model, foulPos: Vector3)
+    if isSetPieceActive or isMatchPaused or isGoalCelebrating then return end
+    isSetPieceActive = true
+    isKickOnCooldown = true
+
+    releaseBall()
+
+    local fouledStats = characterStats[fouledModel]
+    local fouledName = if fouledStats then fouledStats.name else fouledModel.Name
+    local fouledClub = characterClub[fouledModel] or ""
+    local foulerStats = foulerSlot.stats
+    local foulerName = if foulerStats then foulerStats.name else foulerSlot.model.Name
+
+    local isFouledRed = (string.find(fouledModel.Name, "Rojo") ~= nil)
+    local fouledTeamTag = if isFouledRed then "Rojo" else "Azul"
+    local fouledBots = if isFouledRed then teamRedBots else teamBlueBots
+    local enemyBots = if isFouledRed then teamBlueBots else teamRedBots
+
+    local inPenalty = isInsidePenaltyBox(foulPos)
+    local eventTitle = if inPenalty then "¡PENALTI!" else "¡FALTA!"
+    local eventDesc = string.format("%s (%s) recibió falta de %s", fouledName, fouledClub, foulerName)
+
+    -- Silbato del árbitro
+    playWhistleSound(if inPenalty then "long" else "double")
+
+    -- Mover árbitro a la posición de la infracción
+    if refereeModel and refereeModel.Parent then
+        local rHum = refereeModel:FindFirstChildOfClass("Humanoid")
+        if rHum then
+            rHum:MoveTo(foulPos + Vector3.new(0, 0, (if foulPos.Z > 0 then 8 else -8)))
+        end
+    end
+
+    -- Notificar clientes para mostrar banner en pantalla
+    foulAnnouncementEvent:FireAllClients(eventTitle, eventDesc, inPenalty)
+
+    -- Determinar punto de reanudación
+    local restartSpot: Vector3
+    if inPenalty then
+        local targetGoalX = if isFouledRed then (if currentPeriodSideSwapped then -halfX else halfX) else (if currentPeriodSideSwapped then halfX else -halfX)
+        local inward = if targetGoalX > 0 then -1 else 1
+        restartSpot = Vector3.new(targetGoalX + (inward * PENALTY_SPOT_DIST), 2.5, 0)
+    else
+        restartSpot = Vector3.new(safeClamp(foulPos.X, -halfX + 15, halfX - 15), 2.5, safeClamp(foulPos.Z, -halfY + 15, halfY - 15))
+    end
+
+    if currentBall then
+        currentBall.AssemblyLinearVelocity = Vector3.zero
+        currentBall.AssemblyAngularVelocity = Vector3.zero
+        currentBall.CFrame = CFrame.new(restartSpot)
+    end
+
+    -- Seleccionar ejecutor: ST o el mejor tirador/pasador disponible
+    local takerSlot: BotSlot? = fouledBots["ST"] or fouledBots["CM1"] or fouledBots["RW"]
+    if not takerSlot or not takerSlot.model or not takerSlot.model.Parent then
+        for _, s in pairs(fouledBots) do
+            if s.model and s.model.Parent and s.role ~= "Portero" then
+                takerSlot = s
+                break
+            end
+        end
+    end
+
+    task.delay(1.2, function()
+        if not takerSlot or not takerSlot.model or not currentBall then
+            isKickOnCooldown = false
+            isSetPieceActive = false
+            return
+        end
+
+        local tHrp = takerSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+        if not tHrp then
+            isKickOnCooldown = false
+            isSetPieceActive = false
+            return
+        end
+
+        -- Colocar al tirador frente al balón
+        local enemyGoalTarget = if takerSlot.teamName == "Azul" then (if currentPeriodSideSwapped then BLUE_GOAL_CENTER else RED_GOAL_CENTER) else (if currentPeriodSideSwapped then RED_GOAL_CENTER else BLUE_GOAL_CENTER)
+        local toGoal = (enemyGoalTarget - restartSpot).Unit
+        tHrp.CFrame = CFrame.new(restartSpot - (toGoal * 3.5), restartSpot)
+        attachBallToPlayer(takerSlot.model)
+
+        -- Silbato de orden de reanudación
+        task.delay(0.6, function()
+            playWhistleSound("short")
+        end)
+
+        -- Ejecutar la falta o el penalti tras 1.8s
+        task.delay(1.8, function()
+            if not currentBall or currentOwner ~= takerSlot.model then
+                isKickOnCooldown = false
+                isSetPieceActive = false
+                return
+            end
+
+            local tStats = takerSlot.stats
+            local rollChoice = math.random(1, 100)
+
+            if inPenalty then
+                -- EN PENALTI: Decide a qué lado chutar (izquierda, derecha o centro raso/potente)
+                local sideRoll = math.random()
+                local cornerOffset = if sideRoll < 0.45 then -(GOAL_WIDTH / 2 - 2.5) elseif sideRoll > 0.55 then (GOAL_WIDTH / 2 - 2.5) else 0
+                local targetPoint = enemyGoalTarget + Vector3.new(0, math.random(2, 7), cornerOffset)
+                local shootDir = (targetPoint - tHrp.Position).Unit
+                local shotMultiplier = getShotPowerMultiplier(tStats.shot)
+                local speed = 145 * shotMultiplier
+                local liftY = math.random(4, 14)
+
+                releaseBall()
+                isKickOnCooldown = true
+                currentBall.CFrame = currentBall.CFrame + (shootDir * 2.5)
+                currentBall.AssemblyLinearVelocity = (shootDir * speed) + Vector3.new(0, liftY, 0)
+                currentBall.AssemblyAngularVelocity = Vector3.new(-shootDir.Z, 0, shootDir.X) * 55
+
+                if tStats.shot >= 88 then igniteBallInFlames(2.0) end
+                task.delay(0.6, function()
+                    isKickOnCooldown = false
+                    isSetPieceActive = false
+                end)
+
+            else
+                -- EN FALTA: El jugador puede decidir chutar directo (si está cerca) o pasarla a un compañero desmarcado
+                local distToGoal = (enemyGoalTarget - restartSpot).Magnitude
+                local canDirectShot = (distToGoal < 80) and (tStats.shot >= 75)
+
+                if canDirectShot and rollChoice <= 55 then
+                    -- Disparo directo de falta
+                    local sideOffset = if math.random() > 0.5 then (GOAL_WIDTH / 2 - 3) else -(GOAL_WIDTH / 2 - 3)
+                    local targetPoint = enemyGoalTarget + Vector3.new(0, math.random(4, 9), sideOffset)
+                    local shootDir = (targetPoint - tHrp.Position).Unit
+                    local shotMultiplier = getShotPowerMultiplier(tStats.shot)
+                    local speed = 130 * shotMultiplier
+
+                    releaseBall()
+                    isKickOnCooldown = true
+                    currentBall.CFrame = currentBall.CFrame + (shootDir * 2.5)
+                    currentBall.AssemblyLinearVelocity = (shootDir * speed) + Vector3.new(0, math.random(12, 22), 0)
+                    task.delay(0.6, function()
+                        isKickOnCooldown = false
+                        isSetPieceActive = false
+                    end)
+
+                else
+                    -- Pase táctico de falta
+                    local bestTarget, score, pType = findBestPassTarget(takerSlot, fouledBots, enemyBots, takerSlot.tactic)
+                    if bestTarget then
+                        executePass(takerSlot, bestTarget, pType)
+                    else
+                        local fwd = (enemyGoalTarget - restartSpot).Unit
+                        releaseBall()
+                        isKickOnCooldown = true
+                        currentBall.AssemblyLinearVelocity = (fwd * 60) + Vector3.new(0, 4, 0)
+                    end
+                    task.delay(0.6, function()
+                        isKickOnCooldown = false
+                        isSetPieceActive = false
+                    end)
+                end
+            end
+        end)
+    end)
+end
     slot: BotSlot,
     allyTeam: { [string]: BotSlot },
     enemyTeam: { [string]: BotSlot },
@@ -2603,7 +2835,14 @@ local function updateBotSlotAI(
                     local roll = math.random(1, 100)
 
                     if roll <= stealChance then
-                        attachBallToPlayer(bot)
+                        -- Probabilidad de falta o penalti en la entrada (22% base, mayor si el atacante tiene mejor regate)
+                        local foulChance = safeClamp(22 + (carrierDribble - defenderDef) * 0.4, 10, 45)
+                        if math.random(1, 100) <= foulChance then
+                            triggerFoul(slot, currentOwner, hrp.Position)
+                            return
+                        else
+                            attachBallToPlayer(bot)
+                        end
                     else
                         -- El atacante supera la entrada con un regate exitoso (pequeño boost de evasión)
                         isKickOnCooldown = true
@@ -2626,7 +2865,13 @@ local function updateBotSlotAI(
                     local carrierDribble = if carrierStats then carrierStats.dribble else 70
                     local stealChance = safeClamp(50 + (botStats.defense - carrierDribble) * 1.1, 20, 85)
                     if math.random(1, 100) <= stealChance then
-                        attachBallToPlayer(bot)
+                        local foulChance = safeClamp(20 + (carrierDribble - botStats.defense) * 0.4, 10, 45)
+                        if math.random(1, 100) <= foulChance and currentOwner then
+                            triggerFoul(slot, currentOwner, hrp.Position)
+                            return
+                        else
+                            attachBallToPlayer(bot)
+                        end
                     end
                 end
                 return
@@ -2989,6 +3234,8 @@ local function updateMatchClock()
             halftimeRealSecondsLeft = 60
             releaseBall()
 
+            playWhistleSound("double")
+
             -- El árbitro recoge el balón para el descanso
             if refereeModel and currentBall then
                 attachBallToPlayer(refereeModel)
@@ -3018,6 +3265,7 @@ local function updateMatchClock()
 
             resetPositionsToField()
             spawnBall(CFrame.new(0, 2.5, 0))
+            playWhistleSound("short")
             print("[PARTIDO] ¡Comienza la Segunda Parte! Equipos cambian de lado.")
         end
 
@@ -3047,6 +3295,8 @@ local function updateMatchClock()
             isMatchPaused = true
             fulltimeRealSecondsLeft = 60
             releaseBall()
+
+            playWhistleSound("long")
 
             -- El árbitro recoge el balón tras el pitido final
             if refereeModel and currentBall then
@@ -3247,6 +3497,7 @@ local function handleChatMessage(player: Player, rawMessage: string)
         spawnFull6v6Match()
         resetPositionsToField()
         spawnBall(CFrame.new(0, 2.5, 0))
+        playWhistleSound("short")
     elseif clean == "/limpiar" or clean == "/stop" or clean == "!stop" then
         cleanTeam(teamBlueBots)
         cleanTeam(teamRedBots)
@@ -3308,6 +3559,7 @@ toggleMatchEvent.OnServerEvent:Connect(function(player)
         spawnFull6v6Match()
         resetPositionsToField()
         spawnBall(CFrame.new(0, 2.5, 0))
+        playWhistleSound("short")
     else
         cleanTeam(teamBlueBots)
         cleanTeam(teamRedBots)
