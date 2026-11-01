@@ -2066,18 +2066,26 @@ local function getTacticalPosition(
     elseif role == "Defensa" then
         if hasEnemyPossession then
             local ownGoalX = -enemyGoalPos.X
-            local defLineX = ownGoalX + (45 * attackDirX)
-            local shiftedZ = math.clamp(base.Z + (ballPos.Z * 0.4), -85, 85)
-            return Vector3.new(defLineX, 3, shiftedZ)
-        elseif hasTeamPossession then
-            -- Laterales (LB, RB) suben por la banda para dar amplitud ofensiva
+            -- Los laterales (LB, RB) vigilan sus bandas y entran a tapar si el balón o un extremo rival está abierto
             if slot.roleId == "LB" or slot.roleId == "RB" then
-                local wingX = math.clamp(ballPos.X - (15 * attackDirX), -halfX + 70, halfX - 60)
+                local defLineX = ownGoalX + (55 * attackDirX)
+                local trackZ = if math.abs(ballPos.Z - base.Z) < 35 then ballPos.Z else base.Z
+                return Vector3.new(defLineX, 3, trackZ)
+            else
+                -- Los centrales (CB1, CB2) forman el embudo central
+                local defLineX = ownGoalX + (42 * attackDirX)
+                local shiftedZ = math.clamp(base.Z + (ballPos.Z * 0.35), -38, 38)
+                return Vector3.new(defLineX, 3, shiftedZ)
+            end
+        elseif hasTeamPossession then
+            -- Laterales (LB, RB) doblan por la banda y ofrecen salida activa
+            if slot.roleId == "LB" or slot.roleId == "RB" then
+                local wingX = math.clamp(ballPos.X - (5 * attackDirX), -halfX + 70, halfX - 40)
                 return Vector3.new(wingX, 3, base.Z)
             else
                 -- Centrales aseguran la retaguardia
                 local ownGoalX = -enemyGoalPos.X
-                local safeLineX = ownGoalX + (95 * attackDirX)
+                local safeLineX = ownGoalX + (90 * attackDirX)
                 return Vector3.new(safeLineX, 3, base.Z)
             end
         else
@@ -2261,23 +2269,40 @@ local function updateBotSlotAI(
                 return
             end
         else
-            -- Marcaje zonal / al hombre: NO amontonarse
-            -- Si es defensa, busca tapar al rival más cercano a su zona o guardar la línea
+            -- Marcaje zonal / al hombre activo:
+            local ownGoalX = -enemyGoalPos.X
+            local distToOurGoal = math.abs(hrp.Position.X - ownGoalX)
+
+            -- 1. Si el rival con balón se acerca peligrosamente a la frontal (menos de 55 studs de la portería o 30 studs del defensa), entra a tapar/robar
+            if (slot.role == "Defensa" or slot.roleId == "CDM") and distToBall < 38 then
+                humanoid:MoveTo(ballPos)
+                if distToBall < stealRadius and (now - slot.lastStealTime >= stealCooldown) and not isKickOnCooldown then
+                    slot.lastStealTime = now
+                    local carrierStats = characterStats[currentOwner]
+                    local carrierDribble = if carrierStats then carrierStats.dribble else 70
+                    local stealChance = math.clamp(50 + (botStats.defense - carrierDribble) * 1.1, 20, 85)
+                    if math.random(1, 100) <= stealChance then
+                        attachBallToPlayer(bot)
+                    end
+                end
+                return
+            end
+
+            -- 2. Marcaje activo sobre los atacantes rivales sin balón
             local bestMarkTarget: Vector3? = nil
-            local nearestOpponentDist = 999
+            local minThreatDist = 999
 
             for _, oppSlot in pairs(enemyTeam) do
-                if oppSlot.model and oppSlot.model ~= currentOwner and oppSlot.model.Parent then
+                if oppSlot.model and oppSlot.model ~= currentOwner and oppSlot.model.Parent and oppSlot.role ~= "Portero" then
                     local oppHrp = oppSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
                     if oppHrp then
-                        -- ¿Está este rival cerca de la zona asignada a este defensor?
-                        local distToZone = (oppHrp.Position - slot.basePosition).Magnitude
-                        if distToZone < 65 and distToZone < nearestOpponentDist then
-                            nearestOpponentDist = distToZone
-                            -- Posicionarse entre el rival y la portería propia (intercepción / tapar pase)
-                            local ownGoalX = -enemyGoalPos.X
+                        local distToOpp = (oppHrp.Position - hrp.Position).Magnitude
+                        -- Marcar si está en su sector (hasta 75 studs de radio de acción)
+                        if distToOpp < 75 and distToOpp < minThreatDist then
+                            minThreatDist = distToOpp
+                            -- Colocarse entre el rival y la portería propia a 4.5 studs para anticipar pase
                             local toGoal = (Vector3.new(ownGoalX, 3, 0) - oppHrp.Position).Unit
-                            bestMarkTarget = oppHrp.Position + (toGoal * 8)
+                            bestMarkTarget = oppHrp.Position + (toGoal * 4.5)
                         end
                     end
                 end
@@ -2288,7 +2313,7 @@ local function updateBotSlotAI(
                 return
             end
 
-            -- Si no hay marca directa, mantener la posición táctica ordenada
+            -- Si no hay atacante cercano, mantener la formación táctica
             local tacticalPos = getTacticalPosition(slot, false, true, ballPos, enemyGoalPos)
             humanoid:MoveTo(tacticalPos)
             return
@@ -2340,16 +2365,27 @@ local function runTeamCoordinator(
         if cHrp then targetItemPos = cHrp.Position end
     end
 
+    -- Si el rival avanza por el centro hacia nuestra portería, los centrales y el pivote tienen máxima prioridad para salir al paso
+    local ownGoalX = -enemyGoalPos.X
+    local distToOurGoal = math.abs(targetItemPos.X - ownGoalX)
+
     for roleId, slot in pairs(allyTeam) do
-        if slot.model and slot.model.Parent then
+        if slot.model and slot.model.Parent and slot.role ~= "Portero" then
             local hrp = slot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
             local hum = slot.model:FindFirstChildOfClass("Humanoid")
             if hrp and hum and hum.Health > 0 then
                 local dist = (hrp.Position - targetItemPos).Magnitude
                 local distWeight = dist
-                if slot.role == "Defensa" and (math.abs(targetItemPos.X - slot.basePosition.X) > 65) then
-                    distWeight = distWeight + 60
+
+                -- Si el portador viene por el centro hacia el área propia, CBs y CDM deben salir a frenarlo sin penalización
+                if slot.roleId == "CDM" and math.abs(targetItemPos.Z) < 35 then
+                    distWeight = distWeight * 0.7
+                elseif (slot.roleId == "CB1" or slot.roleId == "CB2") and distToOurGoal < 85 then
+                    distWeight = distWeight * 0.75
+                elseif (slot.roleId == "LB" or slot.roleId == "RB") and math.abs(targetItemPos.Z - slot.basePosition.Z) < 30 then
+                    distWeight = distWeight * 0.7
                 end
+
                 if distWeight < minDistance then
                     minDistance = distWeight
                     bestPresserSlot = slot
