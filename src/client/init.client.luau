@@ -8,15 +8,16 @@ local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
 --------------------------------------------------------------------------------
--- 1. CÁMARA AÉREA LIBRE (MODO ESPECTADOR / TV)
+-- 1. CÁMARA FREECAM REAL (ESPECTADOR TOTALMENTE INDEPENDIENTE)
 --------------------------------------------------------------------------------
-camera.CameraType = Enum.CameraType.Scriptable
-local camPos = Vector3.new(0, 110, 150)
-local camLookAt = Vector3.new(0, 2, 0)
-camera.CFrame = CFrame.lookAt(camPos, camLookAt)
+player.CameraMinZoomDistance = 0.5
+player.CameraMaxZoomDistance = 9999
+
+local camYaw = 0
+local camPitch = -math.rad(30)
+local camPos = Vector3.new(0, 110, 190)
 
 local isMouseDown = false
-local lastMousePos = Vector2.zero
 local keysDown = {
     [Enum.KeyCode.W] = false,
     [Enum.KeyCode.A] = false,
@@ -24,6 +25,7 @@ local keysDown = {
     [Enum.KeyCode.D] = false,
     [Enum.KeyCode.Q] = false,
     [Enum.KeyCode.E] = false,
+    [Enum.KeyCode.LeftShift] = false,
 }
 
 UserInputService.InputBegan:Connect(function(input, gpe)
@@ -32,7 +34,7 @@ UserInputService.InputBegan:Connect(function(input, gpe)
         keysDown[input.KeyCode] = true
     elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
         isMouseDown = true
-        lastMousePos = UserInputService:GetMouseLocation()
+        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
     end
 end)
 
@@ -41,54 +43,44 @@ UserInputService.InputEnded:Connect(function(input)
         keysDown[input.KeyCode] = false
     elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
         isMouseDown = false
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
     end
 end)
 
-UserInputService.PointerAction:Connect(function(wheel, _pan, _pinch, gpe)
-    if gpe then return end
-    camPos = camPos + camera.CFrame.LookVector * (wheel * 18)
-    camPos = Vector3.new(
-        math.clamp(camPos.X, -220, 220),
-        math.clamp(camPos.Y, 20, 220),
-        math.clamp(camPos.Z, -180, 180)
-    )
+UserInputService.InputChanged:Connect(function(input)
+    if isMouseDown and input.UserInputType == Enum.UserInputType.MouseMovement then
+        camYaw = camYaw - input.Delta.X * 0.003
+        camPitch = math.clamp(camPitch - input.Delta.Y * 0.003, -math.rad(85), math.rad(85))
+    elseif input.UserInputType == Enum.UserInputType.MouseWheel then
+        local camRot = CFrame.Angles(0, camYaw, 0) * CFrame.Angles(camPitch, 0, 0)
+        local zoomSpeed = if keysDown[Enum.KeyCode.LeftShift] then 45 else 22
+        camPos = camPos + camRot.LookVector * (input.Position.Z * zoomSpeed)
+    end
 end)
 
 RunService.RenderStepped:Connect(function(dt)
+    camera.CameraType = Enum.CameraType.Scriptable
+
+    local camRot = CFrame.Angles(0, camYaw, 0) * CFrame.Angles(camPitch, 0, 0)
     local moveDir = Vector3.zero
-    local forward = Vector3.new(camera.CFrame.LookVector.X, 0, camera.CFrame.LookVector.Z).Unit
-    local right = Vector3.new(camera.CFrame.RightVector.X, 0, camera.CFrame.RightVector.Z).Unit
+
+    local forward = camRot.LookVector
+    local right = camRot.RightVector
+    local up = Vector3.new(0, 1, 0)
 
     if keysDown[Enum.KeyCode.W] then moveDir = moveDir + forward end
     if keysDown[Enum.KeyCode.S] then moveDir = moveDir - forward end
-    if keysDown[Enum.KeyCode.A] then moveDir = moveDir - right end
     if keysDown[Enum.KeyCode.D] then moveDir = moveDir + right end
-    if keysDown[Enum.KeyCode.E] then moveDir = moveDir + Vector3.new(0, 1, 0) end
-    if keysDown[Enum.KeyCode.Q] then moveDir = moveDir - Vector3.new(0, 1, 0) end
+    if keysDown[Enum.KeyCode.A] then moveDir = moveDir - right end
+    if keysDown[Enum.KeyCode.E] then moveDir = moveDir + up end
+    if keysDown[Enum.KeyCode.Q] then moveDir = moveDir - up end
 
+    local speed = if keysDown[Enum.KeyCode.LeftShift] then 220 else 110
     if moveDir.Magnitude > 0 then
-        camPos = camPos + moveDir.Unit * (110 * dt)
+        camPos = camPos + moveDir.Unit * (speed * dt)
     end
 
-    camPos = Vector3.new(
-        math.clamp(camPos.X, -220, 220),
-        math.clamp(camPos.Y, 20, 220),
-        math.clamp(camPos.Z, -180, 180)
-    )
-
-    if isMouseDown then
-        local curMouse = UserInputService:GetMouseLocation()
-        local delta = curMouse - lastMousePos
-        lastMousePos = curMouse
-
-        local rotX = -delta.X * 0.003
-        local rotY = -delta.Y * 0.003
-        local curCFrame = camera.CFrame
-        local newRot = CFrame.Angles(0, rotX, 0) * curCFrame.Rotation * CFrame.Angles(rotY, 0, 0)
-        camera.CFrame = CFrame.new(camPos) * newRot
-    else
-        camera.CFrame = CFrame.lookAt(camPos, Vector3.new(camPos.X * 0.6, 0, 0))
-    end
+    camera.CFrame = CFrame.new(camPos) * camRot
 end)
 
 local function setupCharacter(character: Model)
