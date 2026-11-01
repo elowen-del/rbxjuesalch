@@ -92,9 +92,10 @@ local ballPossessionEvent = remoteFolder:WaitForChild("BallPossession", 15) :: R
 local goalScoredEvent = remoteFolder:WaitForChild("GoalScored", 15) :: RemoteEvent
 local updateScoreEvent = remoteFolder:WaitForChild("UpdateScore", 15) :: RemoteEvent
 local shotCooldownEvent = remoteFolder:WaitForChild("ShotCooldown", 15) :: RemoteEvent
+local matchTimeEvent = remoteFolder:WaitForChild("MatchTimeUpdate", 15) :: RemoteEvent
 
 --------------------------------------------------------------------------------
--- 3. INTERFAZ GRÁFICA: MARCADOR + BARRA DE POTENCIA + COOLDOWN + GOL
+-- 3. INTERFAZ GRÁFICA TELEVISIVA: MARCADOR + RELOJ 90 MIN + ESTADOS
 --------------------------------------------------------------------------------
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
@@ -102,72 +103,144 @@ screenGui.Name = "SoccerPowerUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Marcador Superior
+-- Contenedor Principal del Marcador (Estilo Broadcast)
 local scoreBoard = Instance.new("Frame")
 scoreBoard.Name = "ScoreBoard"
-scoreBoard.Size = UDim2.new(0, 260, 0, 48)
-scoreBoard.Position = UDim2.new(0.5, -130, 0.02, 0)
-scoreBoard.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+scoreBoard.Size = UDim2.new(0, 360, 0, 48)
+scoreBoard.Position = UDim2.new(0.5, -180, 0.015, 0)
+scoreBoard.BackgroundColor3 = Color3.fromRGB(15, 18, 24)
 scoreBoard.BorderSizePixel = 0
 scoreBoard.Parent = screenGui
 
 local sbCorner = Instance.new("UICorner")
-sbCorner.CornerRadius = UDim.new(0, 10)
+sbCorner.CornerRadius = UDim.new(0, 8)
 sbCorner.Parent = scoreBoard
 
 local sbStroke = Instance.new("UIStroke")
 sbStroke.Color = Color3.fromRGB(255, 255, 255)
-sbStroke.Thickness = 2
-sbStroke.Transparency = 0.3
+sbStroke.Thickness = 1.5
+sbStroke.Transparency = 0.5
 sbStroke.Parent = scoreBoard
 
-local blueScoreLabel = Instance.new("TextLabel")
-blueScoreLabel.Size = UDim2.new(0.42, 0, 1, 0)
-blueScoreLabel.Position = UDim2.new(0, 0, 0, 0)
-blueScoreLabel.BackgroundTransparency = 1
-blueScoreLabel.Text = "AZUL: 0"
-blueScoreLabel.TextColor3 = Color3.fromRGB(70, 175, 255)
-blueScoreLabel.Font = Enum.Font.GothamBold
-blueScoreLabel.TextSize = 18
-blueScoreLabel.Parent = scoreBoard
+-- 1. Caja de Tiempo / Minuto (Izquierda)
+local timeBox = Instance.new("Frame")
+timeBox.Name = "TimeBox"
+timeBox.Size = UDim2.new(0, 95, 1, 0)
+timeBox.Position = UDim2.new(0, 0, 0, 0)
+timeBox.BackgroundColor3 = Color3.fromRGB(24, 28, 38)
+timeBox.BorderSizePixel = 0
+timeBox.Parent = scoreBoard
 
-local vsLabel = Instance.new("TextLabel")
-vsLabel.Size = UDim2.new(0.16, 0, 1, 0)
-vsLabel.Position = UDim2.new(0.42, 0, 0, 0)
-vsLabel.BackgroundTransparency = 1
-vsLabel.Text = "-"
-vsLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-vsLabel.Font = Enum.Font.GothamBold
-vsLabel.TextSize = 20
-vsLabel.Parent = scoreBoard
+local tbCorner = Instance.new("UICorner")
+tbCorner.CornerRadius = UDim.new(0, 8)
+tbCorner.Parent = timeBox
 
-local redScoreLabel = Instance.new("TextLabel")
-redScoreLabel.Size = UDim2.new(0.42, 0, 1, 0)
-redScoreLabel.Position = UDim2.new(0.58, 0, 0, 0)
-redScoreLabel.BackgroundTransparency = 1
-redScoreLabel.Text = "0 :ROJO"
-redScoreLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
-redScoreLabel.Font = Enum.Font.GothamBold
-redScoreLabel.TextSize = 18
-redScoreLabel.Parent = scoreBoard
+local timeLabel = Instance.new("TextLabel")
+timeLabel.Name = "TimeLabel"
+timeLabel.Size = UDim2.new(1, 0, 1, 0)
+timeLabel.BackgroundTransparency = 1
+timeLabel.Text = "00:00"
+timeLabel.TextColor3 = Color3.fromRGB(255, 220, 80)
+timeLabel.Font = Enum.Font.GothamBold
+timeLabel.TextSize = 16
+timeLabel.Parent = timeBox
 
+-- 2. Equipos y Resultado (Centro - Derecha)
+local matchBox = Instance.new("Frame")
+matchBox.Name = "MatchBox"
+matchBox.Size = UDim2.new(1, -95, 1, 0)
+matchBox.Position = UDim2.new(0, 95, 0, 0)
+matchBox.BackgroundTransparency = 1
+matchBox.Parent = scoreBoard
+
+local blueLabel = Instance.new("TextLabel")
+blueLabel.Name = "BlueLabel"
+blueLabel.Size = UDim2.new(0.38, 0, 1, 0)
+blueLabel.Position = UDim2.new(0, 0, 0, 0)
+blueLabel.BackgroundTransparency = 1
+blueLabel.Text = "AZUL 0"
+blueLabel.TextColor3 = Color3.fromRGB(65, 175, 255)
+blueLabel.Font = Enum.Font.GothamBold
+blueLabel.TextSize = 16
+blueLabel.Parent = matchBox
+
+local dividerLabel = Instance.new("TextLabel")
+dividerLabel.Name = "Divider"
+dividerLabel.Size = UDim2.new(0.24, 0, 1, 0)
+dividerLabel.Position = UDim2.new(0.38, 0, 0, 0)
+dividerLabel.BackgroundTransparency = 1
+dividerLabel.Text = "-"
+dividerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+dividerLabel.Font = Enum.Font.GothamBold
+dividerLabel.TextSize = 18
+dividerLabel.Parent = matchBox
+
+local redLabel = Instance.new("TextLabel")
+redLabel.Name = "RedLabel"
+redLabel.Size = UDim2.new(0.38, 0, 1, 0)
+redLabel.Position = UDim2.new(0.62, 0, 0, 0)
+redLabel.BackgroundTransparency = 1
+redLabel.Text = "0 ROJO"
+redLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
+redLabel.Font = Enum.Font.GothamBold
+redLabel.TextSize = 16
+redLabel.Parent = matchBox
+
+-- 3. Banner de Estado (Descanso, Final, etc.)
+local statusBanner = Instance.new("Frame")
+statusBanner.Name = "StatusBanner"
+statusBanner.Size = UDim2.new(0, 260, 0, 26)
+statusBanner.Position = UDim2.new(0.5, -130, 0, 52)
+statusBanner.BackgroundColor3 = Color3.fromRGB(12, 14, 20)
+statusBanner.BorderSizePixel = 0
+statusBanner.Visible = false
+statusBanner.Parent = scoreBoard
+
+local sbCorner2 = Instance.new("UICorner")
+sbCorner2.CornerRadius = UDim.new(0, 6)
+sbCorner2.Parent = statusBanner
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Size = UDim2.new(1, 0, 1, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "PRIMERA PARTE"
+statusLabel.TextColor3 = Color3.fromRGB(255, 230, 120)
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.TextSize = 13
+statusLabel.Parent = statusBanner
+
+-- Evento de actualización del tiempo de partido
+matchTimeEvent.OnClientEvent:Connect(function(minuteText: string, statusText: string, showBanner: boolean)
+    timeLabel.Text = minuteText
+    if showBanner then
+        statusBanner.Visible = true
+        statusLabel.Text = statusText
+    else
+        statusBanner.Visible = false
+    end
+end)
+
+-- Evento de actualización de goles
 updateScoreEvent.OnClientEvent:Connect(function(blueScore: number, redScore: number)
-    blueScoreLabel.Text = string.format("AZUL: %d", blueScore)
-    redScoreLabel.Text = string.format("%d :ROJO", redScore)
+    blueLabel.Text = string.format("AZUL %d", blueScore)
+    redLabel.Text = string.format("%d ROJO", redScore)
 
     TweenService:Create(scoreBoard, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 280, 0, 54),
-        Position = UDim2.new(0.5, -140, 0.015, 0)
+        Size = UDim2.new(0, 380, 0, 52),
+        Position = UDim2.new(0.5, -190, 0.012, 0)
     }):Play()
     task.delay(0.2, function()
         TweenService:Create(scoreBoard, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 260, 0, 48),
-            Position = UDim2.new(0.5, -130, 0.02, 0)
+            Size = UDim2.new(0, 360, 0, 48),
+            Position = UDim2.new(0.5, -180, 0.015, 0)
         }):Play()
     end)
 end)
 
--- Barra de potencia
+--------------------------------------------------------------------------------
+-- 4. BARRA DE POTENCIA Y COOLDOWN DE DISPARO
+--------------------------------------------------------------------------------
 local barContainer = Instance.new("Frame")
 barContainer.Name = "PowerBarContainer"
 barContainer.Size = UDim2.new(0, 280, 0, 28)
@@ -186,272 +259,168 @@ stroke.Color = Color3.fromRGB(255, 255, 255)
 stroke.Thickness = 2
 stroke.Parent = barContainer
 
-local fillBar = Instance.new("Frame")
-fillBar.Name = "FillBar"
-fillBar.Size = UDim2.new(0, 0, 1, 0)
-fillBar.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-fillBar.BorderSizePixel = 0
-fillBar.Parent = barContainer
+local fill = Instance.new("Frame")
+fill.Name = "Fill"
+fill.Size = UDim2.new(0, 0, 1, 0)
+fill.BackgroundColor3 = Color3.fromRGB(50, 220, 80)
+fill.BorderSizePixel = 0
+fill.Parent = barContainer
 
 local fillCorner = Instance.new("UICorner")
 fillCorner.CornerRadius = UDim.new(0, 8)
-fillCorner.Parent = fillBar
+fillCorner.Parent = fill
 
-local label = Instance.new("TextLabel")
-label.Name = "PowerLabel"
-label.Size = UDim2.new(1, 0, 1, 0)
-label.BackgroundTransparency = 1
-label.Text = "POTENCIA: 1%"
-label.TextColor3 = Color3.fromRGB(255, 255, 255)
-label.Font = Enum.Font.GothamBold
-label.TextSize = 14
-label.ZIndex = 3
-label.Parent = barContainer
+local fillGradient = Instance.new("UIGradient")
+fillGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 220, 80)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 200, 30)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 40, 40))
+})
+fillGradient.Parent = fill
 
--- Indicador de Cooldown (5 segundos)
-local cdLabel = Instance.new("TextLabel")
-cdLabel.Name = "ShotCooldownLabel"
-cdLabel.Size = UDim2.new(0, 220, 0, 24)
-cdLabel.Position = UDim2.new(0.5, -110, 0.74, 0)
-cdLabel.BackgroundColor3 = Color3.fromRGB(30, 10, 10)
-cdLabel.BackgroundTransparency = 0.2
-cdLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-cdLabel.Font = Enum.Font.GothamBold
-cdLabel.TextSize = 13
-cdLabel.Visible = false
-cdLabel.Parent = screenGui
+local powerText = Instance.new("TextLabel")
+powerText.Size = UDim2.new(1, 0, 1, 0)
+powerText.BackgroundTransparency = 1
+powerText.Text = "POTENCIA: 0%"
+powerText.TextColor3 = Color3.fromRGB(255, 255, 255)
+powerText.Font = Enum.Font.GothamBold
+powerText.TextSize = 14
+powerText.ZIndex = 2
+powerText.Parent = barContainer
 
-local cdCorner = Instance.new("UICorner")
-cdCorner.CornerRadius = UDim.new(0, 6)
-cdCorner.Parent = cdLabel
+-- Indicador visual de Cooldown
+local cooldownLabel = Instance.new("TextLabel")
+cooldownLabel.Name = "CooldownLabel"
+cooldownLabel.Size = UDim2.new(0, 280, 0, 24)
+cooldownLabel.Position = UDim2.new(0.5, -140, 0.825, 0)
+cooldownLabel.BackgroundTransparency = 1
+cooldownLabel.Text = "⏳ ENFRIAMIENTO: 0.0s"
+cooldownLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+cooldownLabel.Font = Enum.Font.GothamBold
+cooldownLabel.TextSize = 13
+cooldownLabel.Visible = false
+cooldownLabel.Parent = screenGui
 
-local eHint = Instance.new("TextLabel")
-eHint.Name = "QuickShotHint"
-eHint.Size = UDim2.new(0, 240, 0, 22)
-eHint.Position = UDim2.new(0.5, -120, 0.84, 0)
-eHint.BackgroundTransparency = 1
-eHint.Text = "[E] Disparo Rápido Instantáneo"
-eHint.TextColor3 = Color3.fromRGB(255, 220, 80)
-eHint.Font = Enum.Font.GothamBold
-eHint.TextSize = 13
-eHint.Visible = false
-eHint.Parent = screenGui
+shotCooldownEvent.OnClientEvent:Connect(function(duration: number)
+    cooldownLabel.Visible = true
+    local startTime = os.clock()
+    task.spawn(function()
+        while true do
+            local elapsed = os.clock() - startTime
+            local remaining = math.max(0, duration - elapsed)
+            if remaining <= 0 then break end
+            cooldownLabel.Text = string.format("⏳ ENFRIAMIENTO: %.1fs", remaining)
+            task.wait(0.05)
+        end
+        cooldownLabel.Visible = false
+    end)
+end)
 
-local goalFrame = Instance.new("Frame")
-goalFrame.Name = "GoalCelebrationFrame"
-goalFrame.Size = UDim2.new(1, 0, 1, 0)
-goalFrame.Position = UDim2.new(0, 0, 0, 0)
-goalFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-goalFrame.BackgroundTransparency = 1
-goalFrame.Visible = false
-goalFrame.ZIndex = 10
-goalFrame.Parent = screenGui
+-- Letrero Gigante de GOL
+local goalLabel = Instance.new("TextLabel")
+goalLabel.Name = "GoalLabel"
+goalLabel.Size = UDim2.new(0, 500, 0, 100)
+goalLabel.Position = UDim2.new(0.5, -250, 0.35, 0)
+goalLabel.BackgroundTransparency = 1
+goalLabel.Text = "⚽ ¡GOL! ⚽"
+goalLabel.TextColor3 = Color3.fromRGB(255, 230, 0)
+goalLabel.Font = Enum.Font.GothamBlack
+goalLabel.TextScaled = true
+goalLabel.Visible = false
+goalLabel.ZIndex = 10
+goalLabel.Parent = screenGui
 
-local goalBanner = Instance.new("Frame")
-goalBanner.Name = "Banner"
-goalBanner.Size = UDim2.new(1, 0, 0, 140)
-goalBanner.Position = UDim2.new(0, 0, 0.5, -70)
-goalBanner.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-goalBanner.BackgroundTransparency = 0.2
-goalBanner.BorderSizePixel = 0
-goalBanner.Parent = goalFrame
+local goalStroke = Instance.new("UIStroke")
+goalStroke.Color = Color3.fromRGB(0, 0, 0)
+goalStroke.Thickness = 5
+goalStroke.Parent = goalLabel
 
-local goalText = Instance.new("TextLabel")
-goalText.Size = UDim2.new(1, 0, 0.65, 0)
-goalText.Position = UDim2.new(0, 0, 0, 0)
-goalText.BackgroundTransparency = 1
-goalText.Text = "⚽ ¡¡¡GOOOOOOL!!!"
-goalText.TextColor3 = Color3.fromRGB(255, 220, 0)
-goalText.Font = Enum.Font.FredokaOne
-goalText.TextScaled = true
-goalText.Parent = goalBanner
+goalScoredEvent.OnClientEvent:Connect(function(team: string)
+    goalLabel.Text = string.format("⚽ ¡GOL DEL EQUIPO %s! ⚽", string.upper(team))
+    goalLabel.TextColor3 = if team == "Azul" then Color3.fromRGB(70, 175, 255) else Color3.fromRGB(255, 75, 75)
+    goalLabel.Visible = true
+    goalLabel.Size = UDim2.new(0, 300, 0, 60)
+    goalLabel.Position = UDim2.new(0.5, -150, 0.38, 0)
 
-local goalSubText = Instance.new("TextLabel")
-goalSubText.Size = UDim2.new(1, 0, 0.35, 0)
-goalSubText.Position = UDim2.new(0, 0, 0.65, 0)
-goalSubText.BackgroundTransparency = 1
-goalSubText.Text = "¡Tanto en la portería!"
-goalSubText.TextColor3 = Color3.fromRGB(255, 255, 255)
-goalSubText.Font = Enum.Font.GothamBold
-goalSubText.TextScaled = true
-goalSubText.Parent = goalBanner
-
-goalScoredEvent.OnClientEvent:Connect(function(goalTeam: string)
-    if goalTeam == "Azul" then
-        goalSubText.Text = "¡Gol del Equipo Rojo!"
-        goalSubText.TextColor3 = Color3.fromRGB(255, 80, 80)
-    else
-        goalSubText.Text = "¡Gol del Equipo Azul!"
-        goalSubText.TextColor3 = Color3.fromRGB(80, 180, 255)
-    end
-
-    goalFrame.Visible = true
-    goalBanner.Position = UDim2.new(0, 0, 0.5, -90)
-    goalBanner.BackgroundTransparency = 0.2
-
-    TweenService:Create(goalBanner, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0, 0, 0.5, -70)
+    TweenService:Create(goalLabel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 600, 0, 120),
+        Position = UDim2.new(0.5, -300, 0.32, 0)
     }):Play()
 
-    task.delay(1.0, function()
-        local fadeTween = TweenService:Create(goalBanner, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Position = UDim2.new(0, 0, 0.5, -120),
-            BackgroundTransparency = 1
-        })
-        fadeTween:Play()
-        fadeTween.Completed:Connect(function()
-            goalFrame.Visible = false
-        end)
+    task.delay(1.5, function()
+        goalLabel.Visible = false
     end)
 end)
 
 --------------------------------------------------------------------------------
--- 4. ESTADO LOCAL Y GESTIÓN DEL COOLDOWN DE 5s
+-- 5. LÓGICA DE DISPARO DEL JUGADOR
 --------------------------------------------------------------------------------
 local hasBall = false
 local isCharging = false
 local chargeStartTime = 0
-local MAX_CHARGE_DURATION = 1.6
-local shotCooldownEnd = 0
-
-shotCooldownEvent.OnClientEvent:Connect(function(duration: number)
-    shotCooldownEnd = os.clock() + duration
-end)
-
-local function isCooldownActive(): boolean
-    return os.clock() < shotCooldownEnd
-end
+local MAX_CHARGE_TIME = 1.6
 
 ballPossessionEvent.OnClientEvent:Connect(function(state: boolean)
     hasBall = state
-    eHint.Visible = hasBall
     if not hasBall and isCharging then
         isCharging = false
         barContainer.Visible = false
+        fill.Size = UDim2.new(0, 0, 1, 0)
     end
 end)
 
-local function isHoldingBall(): boolean
-    if hasBall then return true end
-    local char = player.Character
-    if char and char:FindFirstChild("BallControlRing") then
-        return true
+local function getAimDirection(): Vector3
+    local mouseRay = camera:ViewportPointToRay(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    if player.Character then
+        raycastParams.FilterDescendantsInstances = {player.Character}
     end
-    return false
+
+    local result = workspace:Raycast(mouseRay.Origin, mouseRay.Direction * 1000, raycastParams)
+    local hitPoint = if result then result.Position else (mouseRay.Origin + mouseRay.Direction * 200)
+
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+    if hrp then
+        local dir = (hitPoint - hrp.Position)
+        if dir.Magnitude > 0.1 then
+            return dir.Unit
+        end
+    end
+    return mouseRay.Direction.Unit
 end
 
-local function playKickAnimation()
-    local char = player.Character
-    if not char then return end
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not hasBall then return end
 
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    local rightUpperLeg = char:FindFirstChild("RightUpperLeg") :: BasePart?
-    local rightHip = rightUpperLeg and rightUpperLeg:FindFirstChild("RightHip") :: Motor6D?
-
-    local torso = char:FindFirstChild("Torso") :: BasePart?
-    local r6RightHip = torso and torso:FindFirstChild("Right Hip") :: Motor6D?
-
-    if rightHip then
-        local origC0 = rightHip.C0
-        local kickC0 = origC0 * CFrame.Angles(math.rad(-75), 0, 0)
-        local tweenInfo = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local tweenReturn = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-
-        TweenService:Create(rightHip, tweenInfo, {C0 = kickC0}):Play()
-        task.delay(0.09, function()
-            TweenService:Create(rightHip, tweenReturn, {C0 = origC0}):Play()
-        end)
-    elseif r6RightHip then
-        local origC0 = r6RightHip.C0
-        local kickC0 = origC0 * CFrame.Angles(math.rad(75), 0, 0)
-        local tweenInfo = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local tweenReturn = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-
-        TweenService:Create(r6RightHip, tweenInfo, {C0 = kickC0}):Play()
-        task.delay(0.09, function()
-            TweenService:Create(r6RightHip, tweenReturn, {C0 = origC0}):Play()
-        end)
-    end
-end
-
--- A) Carga con Click Izquierdo (Respeta Cooldown de 5s)
-UserInputService.InputBegan:Connect(function(input, _gameProcessed)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        if isHoldingBall() and not isCharging and not isCooldownActive() then
-            isCharging = true
-            chargeStartTime = os.clock()
-            barContainer.Visible = true
-            fillBar.Size = UDim2.new(0.01, 0, 1, 0)
-            fillBar.BackgroundColor3 = Color3.fromRGB(255, 45, 45)
-            label.Text = "POTENCIA: 1%"
-
-            startChargeEvent:FireServer()
-        end
-    -- B) Disparo instantáneo con la tecla E (Respeta Cooldown de 5s)
-    elseif input.KeyCode == Enum.KeyCode.E then
-        if isHoldingBall() and not isCharging and not isCooldownActive() then
-            hasBall = false
-            eHint.Visible = false
-
-            local lookVector = camera.CFrame.LookVector
-            local shootDirection = Vector3.new(lookVector.X, math.clamp(lookVector.Y * 0.5, 0.05, 0.4), lookVector.Z).Unit
-
-            playKickAnimation()
-            quickShotEvent:FireServer(shootDirection)
-        end
+        isCharging = true
+        chargeStartTime = os.clock()
+        barContainer.Visible = true
+        startChargeEvent:FireServer()
+    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+        local aimDir = getAimDirection()
+        quickShotEvent:FireServer(aimDir)
     end
 end)
 
--- Soltar Click Izquierdo
 UserInputService.InputEnded:Connect(function(input, _gameProcessed)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        if isCharging then
-            isCharging = false
-            barContainer.Visible = false
-            hasBall = false
-            eHint.Visible = false
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and isCharging then
+        isCharging = false
+        barContainer.Visible = false
+        fill.Size = UDim2.new(0, 0, 1, 0)
 
-            local lookVector = camera.CFrame.LookVector
-            local shootDirection = Vector3.new(lookVector.X, math.clamp(lookVector.Y * 0.6, 0.05, 0.5), lookVector.Z).Unit
-
-            playKickAnimation()
-            releaseShotEvent:FireServer(shootDirection)
-        end
+        local aimDir = getAimDirection()
+        releaseShotEvent:FireServer(aimDir)
     end
 end)
 
--- Actualización progresiva en pantalla (Barra de Potencia y Temporizador de Cooldown)
 RunService.RenderStepped:Connect(function()
-    -- Mostrar tiempo restante de Cooldown si está activo
-    local now = os.clock()
-    if now < shotCooldownEnd then
-        local remain = shotCooldownEnd - now
-        cdLabel.Visible = true
-        cdLabel.Text = string.format("⏳ Disparo en: %.1fs", remain)
-    else
-        cdLabel.Visible = false
-    end
-
-    if isCharging and isHoldingBall() then
-        local elapsed = now - chargeStartTime
-        local ratio = math.clamp(elapsed / MAX_CHARGE_DURATION, 0.01, 1.0)
-        local percentage = math.floor(ratio * 100)
-
-        local color: Color3
-        if ratio < 0.5 then
-            local t = ratio / 0.5
-            color = Color3.fromRGB(255, math.floor(45 + t * 180), 45)
-        else
-            local t = (ratio - 0.5) / 0.5
-            color = Color3.fromRGB(math.floor(255 - t * 205), 225, 45)
-        end
-
-        fillBar.BackgroundColor3 = color
-        fillBar.Size = UDim2.new(ratio, 0, 1, 0)
-        label.Text = string.format("POTENCIA: %d%%", percentage)
+    if isCharging and hasBall then
+        local elapsed = os.clock() - chargeStartTime
+        local ratio = math.clamp(elapsed / MAX_CHARGE_TIME, 0, 1)
+        fill.Size = UDim2.new(ratio, 0, 1, 0)
+        powerText.Text = string.format("POTENCIA: %d%%", math.floor(ratio * 100))
     end
 end)
-
-print("[CLIENTE] Gran Estadio, Zona de Saque, Cooldown 5s y Sprint Bots listos.")
