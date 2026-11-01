@@ -396,7 +396,8 @@ for _, p in ipairs(TeamsData.PLAYERS) do
     TeamsData.CalculateRarity(p)
 end
 
-return TeamsData
+-- Base de datos inicializada
+
 
 
 print("==========================================================================")
