@@ -17,13 +17,14 @@ TeamsData.CLUBS = {
     {
         name = "Real Madriz",
         league = "LaLiga",
-        tacticStyle = "Posesion",
         primaryColor = Color3.fromRGB(245, 245, 245),
         secondaryColor = Color3.fromRGB(212, 175, 55),
         tactic = {
-            passThreshold = 1.0,
-            shotThreshold = 80,
-            pressIntensity = 0.7,
+            offensive = "Posesion",
+            defensive = "Zona",
+            passThreshold = 0.95,
+            shotThreshold = 78,
+            pressIntensity = 0.75,
             preferShortPass = true,
             maxShotRange = 95,
         }
@@ -31,13 +32,14 @@ TeamsData.CLUBS = {
     {
         name = "FC Barzelona",
         league = "LaLiga",
-        tacticStyle = "Posesion",
         primaryColor = Color3.fromRGB(0, 77, 152),
         secondaryColor = Color3.fromRGB(165, 0, 68),
         tactic = {
-            passThreshold = 0.9,
-            shotThreshold = 82,
-            pressIntensity = 0.75,
+            offensive = "Posesion",
+            defensive = "Contrapresion",
+            passThreshold = 0.85,
+            shotThreshold = 80,
+            pressIntensity = 0.8,
             preferShortPass = true,
             maxShotRange = 90,
         }
@@ -45,13 +47,14 @@ TeamsData.CLUBS = {
     {
         name = "Manchester Citi",
         league = "Premier League",
-        tacticStyle = "Posesion",
         primaryColor = Color3.fromRGB(108, 171, 221),
         secondaryColor = Color3.fromRGB(255, 255, 255),
         tactic = {
-            passThreshold = 1.1,
-            shotThreshold = 78,
-            pressIntensity = 0.85,
+            offensive = "Posesion",
+            defensive = "PresionAlta",
+            passThreshold = 1.0,
+            shotThreshold = 76,
+            pressIntensity = 0.9,
             preferShortPass = true,
             maxShotRange = 100,
         }
@@ -59,11 +62,12 @@ TeamsData.CLUBS = {
     {
         name = "Liverpool FC",
         league = "Premier League",
-        tacticStyle = "PresionAlta",
         primaryColor = Color3.fromRGB(200, 16, 46),
         secondaryColor = Color3.fromRGB(0, 178, 169),
         tactic = {
-            passThreshold = 1.4,
+            offensive = "AtaqueVertical",
+            defensive = "Contrapresion",
+            passThreshold = 1.3,
             shotThreshold = 72,
             pressIntensity = 0.95,
             preferShortPass = false,
@@ -73,12 +77,13 @@ TeamsData.CLUBS = {
     {
         name = "Arsenall",
         league = "Premier League",
-        tacticStyle = "PresionAlta",
         primaryColor = Color3.fromRGB(219, 0, 7),
         secondaryColor = Color3.fromRGB(255, 255, 255),
         tactic = {
-            passThreshold = 1.2,
-            shotThreshold = 75,
+            offensive = "AtaqueBandas",
+            defensive = "PresionAlta",
+            passThreshold = 1.1,
+            shotThreshold = 74,
             pressIntensity = 0.9,
             preferShortPass = true,
             maxShotRange = 105,
@@ -87,12 +92,13 @@ TeamsData.CLUBS = {
     {
         name = "Bayern Munik",
         league = "Bundesliga",
-        tacticStyle = "PresionAlta",
         primaryColor = Color3.fromRGB(220, 5, 45),
         secondaryColor = Color3.fromRGB(0, 102, 178),
         tactic = {
-            passThreshold = 1.3,
-            shotThreshold = 74,
+            offensive = "AtaqueVertical",
+            defensive = "LineaAdelantada",
+            passThreshold = 1.25,
+            shotThreshold = 72,
             pressIntensity = 0.95,
             preferShortPass = false,
             maxShotRange = 115,
@@ -101,13 +107,14 @@ TeamsData.CLUBS = {
     {
         name = "Borussia Dorntmund",
         league = "Bundesliga",
-        tacticStyle = "Contraataque",
         primaryColor = Color3.fromRGB(253, 225, 0),
         secondaryColor = Color3.fromRGB(17, 17, 17),
         tactic = {
-            passThreshold = 1.8,
+            offensive = "Contraataque",
+            defensive = "Contrapresion",
+            passThreshold = 1.5,
             shotThreshold = 68,
-            pressIntensity = 0.7,
+            pressIntensity = 0.85,
             preferShortPass = false,
             maxShotRange = 120,
         }
@@ -115,12 +122,13 @@ TeamsData.CLUBS = {
     {
         name = "Juvetus",
         league = "Serie A",
-        tacticStyle = "BloqueBajo",
         primaryColor = Color3.fromRGB(25, 25, 25),
         secondaryColor = Color3.fromRGB(240, 240, 240),
         tactic = {
-            passThreshold = 2.0,
-            shotThreshold = 65,
+            offensive = "Contraataque",
+            defensive = "BloqueBajo",
+            passThreshold = 1.8,
+            shotThreshold = 66,
             pressIntensity = 0.5,
             preferShortPass = false,
             maxShotRange = 110,
@@ -129,13 +137,14 @@ TeamsData.CLUBS = {
     {
         name = "Inter Milano",
         league = "Serie A",
-        tacticStyle = "BloqueBajo",
         primaryColor = Color3.fromRGB(1, 42, 107),
         secondaryColor = Color3.fromRGB(17, 17, 17),
         tactic = {
-            passThreshold = 1.9,
+            offensive = "Contraataque",
+            defensive = "Zona",
+            passThreshold = 1.7,
             shotThreshold = 68,
-            pressIntensity = 0.55,
+            pressIntensity = 0.6,
             preferShortPass = false,
             maxShotRange = 110,
         }
@@ -143,11 +152,12 @@ TeamsData.CLUBS = {
     {
         name = "Paris Saint-Germane",
         league = "Ligue 1",
-        tacticStyle = "BandasRapido",
         primaryColor = Color3.fromRGB(0, 30, 70),
         secondaryColor = Color3.fromRGB(218, 41, 28),
         tactic = {
-            passThreshold = 1.3,
+            offensive = "AtaqueBandas",
+            defensive = "PresionAlta",
+            passThreshold = 1.2,
             shotThreshold = 70,
             pressIntensity = 0.8,
             preferShortPass = false,
@@ -157,12 +167,13 @@ TeamsData.CLUBS = {
     {
         name = "Ajaks",
         league = "Eredivisie",
-        tacticStyle = "Posesion",
         primaryColor = Color3.fromRGB(225, 30, 45),
         secondaryColor = Color3.fromRGB(250, 250, 250),
         tactic = {
-            passThreshold = 1.0,
-            shotThreshold = 79,
+            offensive = "SobrecargaCentral",
+            defensive = "LineaAdelantada",
+            passThreshold = 0.95,
+            shotThreshold = 78,
             pressIntensity = 0.85,
             preferShortPass = true,
             maxShotRange = 95,
@@ -171,12 +182,13 @@ TeamsData.CLUBS = {
     {
         name = "Benfika",
         league = "Primeira Liga",
-        tacticStyle = "Posesion",
         primaryColor = Color3.fromRGB(220, 20, 30),
         secondaryColor = Color3.fromRGB(255, 255, 255),
         tactic = {
-            passThreshold = 1.1,
-            shotThreshold = 76,
+            offensive = "SobrecargaCentral",
+            defensive = "Zona",
+            passThreshold = 1.05,
+            shotThreshold = 75,
             pressIntensity = 0.8,
             preferShortPass = true,
             maxShotRange = 100,
@@ -185,11 +197,12 @@ TeamsData.CLUBS = {
     {
         name = "Flamengoo",
         league = "Brasileirao",
-        tacticStyle = "BandasRapido",
         primaryColor = Color3.fromRGB(195, 20, 30),
         secondaryColor = Color3.fromRGB(20, 20, 20),
         tactic = {
-            passThreshold = 1.2,
+            offensive = "Contraataque",
+            defensive = "Zona",
+            passThreshold = 1.15,
             shotThreshold = 72,
             pressIntensity = 0.75,
             preferShortPass = false,
@@ -199,13 +212,14 @@ TeamsData.CLUBS = {
     {
         name = "Boca Juniores",
         league = "Liga Argentina",
-        tacticStyle = "PresionAlta",
         primaryColor = Color3.fromRGB(0, 55, 140),
         secondaryColor = Color3.fromRGB(255, 205, 0),
         tactic = {
-            passThreshold = 1.5,
+            offensive = "AtaqueVertical",
+            defensive = "PresionAlta",
+            passThreshold = 1.35,
             shotThreshold = 70,
-            pressIntensity = 0.95,
+            pressIntensity = 0.98,
             preferShortPass = false,
             maxShotRange = 120,
         }
@@ -213,39 +227,12 @@ TeamsData.CLUBS = {
     {
         name = "Al-Hilal Stars",
         league = "Saudi Pro League",
-        tacticStyle = "BandasRapido",
         primaryColor = Color3.fromRGB(0, 80, 200),
         secondaryColor = Color3.fromRGB(255, 255, 255),
         tactic = {
-            passThreshold = 1.3,
-            shotThreshold = 71,
-            pressIntensity = 0.8,
-            preferShortPass = false,
-            maxShotRange = 115,
-        }
-    },
-    {
-        name = "Atletiko Madriz",
-        league = "LaLiga",
-        tacticStyle = "BloqueBajo",
-        primaryColor = Color3.fromRGB(210, 30, 40),
-        secondaryColor = Color3.fromRGB(15, 30, 80),
-        tactic = {
-            passThreshold = 2.1,
-            shotThreshold = 66,
-            pressIntensity = 0.6,
-            preferShortPass = false,
-            maxShotRange = 115,
-        }
-    },
-    {
-        name = "Manchestar Utd",
-        league = "Premier League",
-        tacticStyle = "Contraataque",
-        primaryColor = Color3.fromRGB(218, 2, 14),
-        secondaryColor = Color3.fromRGB(255, 255, 255),
-        tactic = {
-            passThreshold = 1.6,
+            offensive = "AtaqueBandas",
+            defensive = "BloqueBajo",
+            passThreshold = 1.25,
             shotThreshold = 70,
             pressIntensity = 0.75,
             preferShortPass = false,
@@ -253,29 +240,61 @@ TeamsData.CLUBS = {
         }
     },
     {
+        name = "Atletiko Madriz",
+        league = "LaLiga",
+        primaryColor = Color3.fromRGB(210, 30, 40),
+        secondaryColor = Color3.fromRGB(15, 30, 80),
+        tactic = {
+            offensive = "Contraataque",
+            defensive = "BloqueBajo",
+            passThreshold = 1.8,
+            shotThreshold = 66,
+            pressIntensity = 0.7,
+            preferShortPass = false,
+            maxShotRange = 115,
+        }
+    },
+    {
+        name = "Manchestar Utd",
+        league = "Premier League",
+        primaryColor = Color3.fromRGB(218, 2, 14),
+        secondaryColor = Color3.fromRGB(255, 255, 255),
+        tactic = {
+            offensive = "AtaqueVertical",
+            defensive = "Zona",
+            passThreshold = 1.45,
+            shotThreshold = 70,
+            pressIntensity = 0.8,
+            preferShortPass = false,
+            maxShotRange = 115,
+        }
+    },
+    {
         name = "Portoo FC",
         league = "Primeira Liga",
-        tacticStyle = "PresionAlta",
         primaryColor = Color3.fromRGB(0, 60, 160),
         secondaryColor = Color3.fromRGB(255, 255, 255),
         tactic = {
-            passThreshold = 1.3,
+            offensive = "Posesion",
+            defensive = "Contrapresion",
+            passThreshold = 1.1,
             shotThreshold = 74,
-            pressIntensity = 0.85,
-            preferShortPass = false,
+            pressIntensity = 0.88,
+            preferShortPass = true,
             maxShotRange = 110,
         }
     },
     {
         name = "AC Milann",
         league = "Serie A",
-        tacticStyle = "Contraataque",
         primaryColor = Color3.fromRGB(200, 20, 20),
         secondaryColor = Color3.fromRGB(15, 15, 15),
         tactic = {
-            passThreshold = 1.7,
-            shotThreshold = 69,
-            pressIntensity = 0.7,
+            offensive = "Contraataque",
+            defensive = "BloqueBajo",
+            passThreshold = 1.6,
+            shotThreshold = 68,
+            pressIntensity = 0.65,
             preferShortPass = false,
             maxShotRange = 115,
         }
@@ -283,12 +302,13 @@ TeamsData.CLUBS = {
     {
         name = "Sevillia FC",
         league = "LaLiga",
-        tacticStyle = "BandasRapido",
         primaryColor = Color3.fromRGB(235, 235, 235),
         secondaryColor = Color3.fromRGB(200, 25, 35),
         tactic = {
-            passThreshold = 1.25,
-            shotThreshold = 74,
+            offensive = "AtaqueBandas",
+            defensive = "Zona",
+            passThreshold = 1.15,
+            shotThreshold = 73,
             pressIntensity = 0.8,
             preferShortPass = false,
             maxShotRange = 105,
@@ -428,6 +448,7 @@ local function setupCharacterCollision(character: Model)
         if part:IsA("BasePart") then
             pcall(function()
                 part.CollisionGroup = "CharactersGroup"
+                part.CustomPhysicalProperties = PhysicalProperties.new(1.0, 0.3, 0.0, 1.0, 1.0)
             end)
         end
     end
@@ -435,6 +456,7 @@ local function setupCharacterCollision(character: Model)
         if descendant:IsA("BasePart") then
             pcall(function()
                 descendant.CollisionGroup = "CharactersGroup"
+                descendant.CustomPhysicalProperties = PhysicalProperties.new(1.0, 0.3, 0.0, 1.0, 1.0)
             end)
         end
     end)
@@ -852,6 +874,8 @@ type PlayerStats = {
 }
 
 type TacticConfig = {
+    offensive: string?,
+    defensive: string?,
     passThreshold: number,
     shotThreshold: number,
     pressIntensity: number,
@@ -871,6 +895,8 @@ type BotSlot = {
     lastPassTime: number,
     lastShotTime: number,
     lastStealTime: number,
+    staminaCurrent: number?,
+    maxStamina: number?,
 }
 
 local currentClubA = TeamsData.CLUBS[1]
@@ -947,6 +973,11 @@ local fulltimeRealSecondsLeft = 60
 local isMatchPaused = true
 local isMatchStarted = false
 local currentPeriodSideSwapped = false
+
+-- Registro de posesión para la contrapresión (Gegenpressing) y adaptaciones tácticas
+local lastTeamPossessionChangeTime = 0
+local previousPossessionTeam: string = ""
+local currentPossessionTeam: string = ""
 
 local function getFormattedGameMinute(): string
     if currentMatchState == MATCH_STATE_FIRST_EXTRA then
@@ -1079,6 +1110,13 @@ local function attachBallToPlayer(character: Model)
     activeWeld = weld
 
     local isRed = string.find(character.Name, "Rojo") ~= nil
+    local newPossTeam = if isRed then "Rojo" else "Azul"
+    if currentPossessionTeam ~= "" and currentPossessionTeam ~= newPossTeam then
+        previousPossessionTeam = currentPossessionTeam
+        lastTeamPossessionChangeTime = os.clock()
+    end
+    currentPossessionTeam = newPossTeam
+
     local ringColor = if isRed then currentClubB.primaryColor else currentClubA.primaryColor
     createAuraRing(character, ringColor)
 
@@ -1237,6 +1275,9 @@ local function buildSoccerBot(
     humanoid.JumpPower = 0
     humanoid.JumpHeight = 0
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
     humanoid.Parent = bot
 
     attachRarityBillboard(head, statsTemplate)
@@ -1260,6 +1301,8 @@ local function buildSoccerBot(
         lastPassTime = 0,
         lastShotTime = 0,
         lastStealTime = 0,
+        staminaCurrent = 100,
+        maxStamina = 100,
     }
 
     return slot
@@ -1351,6 +1394,9 @@ local function setupGoalkeeperModel(
         humanoid.JumpPower = 52
         humanoid.JumpHeight = 7.5
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
         humanoid.Parent = gk
 
         local impossibleShield = Instance.new("Part")
@@ -1398,6 +1444,8 @@ local function setupGoalkeeperModel(
         lastPassTime = 0,
         lastShotTime = 0,
         lastStealTime = 0,
+        staminaCurrent = 100,
+        maxStamina = 100,
     }
 
     return gk, slot
@@ -1459,6 +1507,10 @@ local function spawnReferee(): Model
     humanoid.MaxHealth = 100
     humanoid.Health = 100
     humanoid.WalkSpeed = 26
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
     humanoid.Parent = ref
 
     local billboard = Instance.new("BillboardGui")
@@ -1930,6 +1982,29 @@ local function findBestPassTarget(
                         local tacticBonus = if tactic.preferShortPass and dist < 45 then 30 else 0
                         local crossBonus = if passType == "cross" then 40 else 0
 
+                        -- Moduladores específicos según táctica ofensiva
+                        local offTactic = tactic.offensive or "Posesion"
+                        if offTactic == "Posesion" then
+                            if dist < 42 then tacticBonus = tacticBonus + 25 end
+                            if enemiesInLine == 0 then tacticBonus = tacticBonus + 15 end
+                        elseif offTactic == "AtaqueVertical" then
+                            if forwardBonus > 15 then forwardBonus = forwardBonus * 1.5 end
+                            if passType == "through_ball" then tacticBonus = tacticBonus + 35 end
+                        elseif offTactic == "AtaqueBandas" then
+                            if passType == "cross" then
+                                crossBonus = crossBonus + 45
+                            elseif math.abs(cHrp.Position.Z) > 45 then
+                                tacticBonus = tacticBonus + 35
+                            end
+                        elseif offTactic == "Contraataque" then
+                            if forwardBonus > 20 then forwardBonus = forwardBonus * 1.7 end
+                            if candidate.role == "Delantero" then roleBonus = roleBonus + 35 end
+                        elseif offTactic == "SobrecargaCentral" then
+                            if math.abs(cHrp.Position.Z) < 32 and candidate.role == "Central" then
+                                tacticBonus = tacticBonus + 40
+                            end
+                        end
+
                         local totalScore = forwardBonus + roleBonus + tacticBonus + crossBonus - (dist * 0.15)
                         if totalScore > bestScore then
                             bestScore = totalScore
@@ -2071,7 +2146,7 @@ local function evaluateShotOpportunity(
 end
 
 --------------------------------------------------------------------------------
--- 15. POSICIONAMIENTO TÁCTICO POR ROL Y TRANSICIONES
+-- 15. POSICIONAMIENTO TÁCTICO POR ROL Y TRANSICIONES (10 GRANDES LIGAS)
 --------------------------------------------------------------------------------
 local function getTacticalPosition(
     slot: BotSlot,
@@ -2086,44 +2161,113 @@ local function getTacticalPosition(
     local role = slot.role
     local base = slot.basePosition
     local attackDirX = if enemyGoalPos.X > 0 then 1 else -1
+    local ownGoalX = -enemyGoalPos.X
+
+    local tactic = slot.tactic
+    local offTactic = (tactic and tactic.offensive) or "Posesion"
+    local defTactic = (tactic and tactic.defensive) or "Zona"
+
+    -- ADAPTACIÓN DINÁMICA POR MARCADOR Y MINUTO
+    local isBlueTeam = (slot.teamName == "Azul")
+    local ourScore = if isBlueTeam then scoreBlue else scoreRed
+    local enemyScore = if isBlueTeam then scoreRed else scoreBlue
+    local isLosingLate = (ourScore < enemyScore) and (matchGameSeconds >= 70 * 60)
+    local isWinningLate = (ourScore > enemyScore) and (matchGameSeconds >= 75 * 60)
+
+    if isLosingLate then
+        defTactic = "PresionAlta"
+    elseif isWinningLate then
+        defTactic = "BloqueBajo"
+    end
 
     if role == "Delantero" then
         if hasTeamPossession then
-            -- DESMARQUES Y LÍNEA OFENSIVA
-            -- Si es delantero centro (ST), busca desmarcarse al espacio a la espalda de centrales
-            -- Si es extremo (LW / RW), busca abrir campo a banda o diagonal al segundo palo
             local roleId = slot.roleId
             local baseZ = base.Z
-            local targetZ = baseZ
 
-            if roleId == "ST" then
-                -- Desmarque en profundidad o arrastre hacia espacio libre
-                local offsideLimitX = (halfX - 26) * attackDirX
-                local leadX = safeClamp(ballPos.X + (38 * attackDirX), -halfX + 30, halfX - 30)
-                -- Buscar el lado opuesto al balón para desmarque al hueco
-                targetZ = if ballPos.Z > 10 then -18 elseif ballPos.Z < -10 then 18 else (if math.sin(os.clock() * 1.5) > 0 then 15 else -15)
-                return Vector3.new(leadX, 3, targetZ)
-            elseif roleId == "LW" then
-                -- Extremo izquierdo pegado a banda para desbordar y centrar (amplitud máxima)
-                targetZ = 78
-                local minX = math.min(-halfX + 45, (halfX - 25) * attackDirX)
-                local maxX = math.max(-halfX + 45, (halfX - 25) * attackDirX)
-                local advX = safeClamp(ballPos.X + (35 * attackDirX), minX, maxX)
-                return Vector3.new(advX, 3, targetZ)
-            elseif roleId == "RW" then
-                -- Extremo derecho pegado a banda para desbordar y centrar (amplitud máxima)
-                targetZ = -78
-                local minX = math.min(-halfX + 45, (halfX - 25) * attackDirX)
-                local maxX = math.max(-halfX + 45, (halfX - 25) * attackDirX)
-                local advX = safeClamp(ballPos.X + (35 * attackDirX), minX, maxX)
-                return Vector3.new(advX, 3, targetZ)
-            else
-                local attackX = (halfX - 30) * attackDirX
-                local flankZ = safeClamp(ballPos.Z * 0.6, -35, 35)
-                return Vector3.new(attackX, 3, flankZ)
+            if offTactic == "Posesion" then
+                if roleId == "ST" then
+                    local leadX = safeClamp(ballPos.X + (30 * attackDirX), -halfX + 35, halfX - 35)
+                    local targetZ = if ballPos.Z > 10 then -16 elseif ballPos.Z < -10 then 16 else 0
+                    return Vector3.new(leadX, 3, targetZ)
+                elseif roleId == "LW" then
+                    local advX = safeClamp(ballPos.X + (28 * attackDirX), -halfX + 45, halfX - 25)
+                    return Vector3.new(advX, 3, 62)
+                elseif roleId == "RW" then
+                    local advX = safeClamp(ballPos.X + (28 * attackDirX), -halfX + 45, halfX - 25)
+                    return Vector3.new(advX, 3, -62)
+                end
+
+            elseif offTactic == "AtaqueVertical" then
+                if roleId == "ST" then
+                    -- Ruptura al espacio profundo a la espalda de la zaga
+                    local leadX = safeClamp(ballPos.X + (48 * attackDirX), -halfX + 25, halfX - 25)
+                    return Vector3.new(leadX, 3, baseZ * 0.4)
+                elseif roleId == "LW" or roleId == "RW" then
+                    local advX = safeClamp(ballPos.X + (42 * attackDirX), -halfX + 30, halfX - 25)
+                    local flankZ = if roleId == "LW" then 68 else -68
+                    return Vector3.new(advX, 3, flankZ)
+                end
+
+            elseif offTactic == "AtaqueBandas" then
+                if roleId == "ST" then
+                    -- El ST fija el corazón del área chica esperando el centro
+                    local boxX = enemyGoalPos.X - (18 * attackDirX)
+                    return Vector3.new(boxX, 3, safeClamp(ballPos.Z * 0.25, -14, 14))
+                elseif roleId == "LW" then
+                    local advX = safeClamp(ballPos.X + (25 * attackDirX), -halfX + 40, halfX - 20)
+                    return Vector3.new(advX, 3, 80) -- Amplitud extrema
+                elseif roleId == "RW" then
+                    local advX = safeClamp(ballPos.X + (25 * attackDirX), -halfX + 40, halfX - 20)
+                    return Vector3.new(advX, 3, -80)
+                end
+
+            elseif offTactic == "Contraataque" then
+                if roleId == "ST" then
+                    -- Desmarque fulgurante hacia huecos libres
+                    local leadX = safeClamp(ballPos.X + (50 * attackDirX), -halfX + 22, halfX - 22)
+                    local targetZ = if math.sin(os.clock() * 2) > 0 then 20 else -20
+                    return Vector3.new(leadX, 3, targetZ)
+                elseif roleId == "LW" or roleId == "RW" then
+                    local advX = safeClamp(ballPos.X + (44 * attackDirX), -halfX + 25, halfX - 25)
+                    return Vector3.new(advX, 3, if roleId == "LW" then 72 else -72)
+                end
+
+            elseif offTactic == "SobrecargaCentral" then
+                if roleId == "ST" then
+                    -- Falso 9: baja ligeramente entre líneas a recibir y combinar
+                    local pocketX = ballPos.X + (12 * attackDirX)
+                    return Vector3.new(pocketX, 3, safeClamp(ballPos.Z * 0.4, -18, 18))
+                elseif roleId == "LW" then
+                    -- Extremos se cierran hacia carriles interiores (half-spaces)
+                    local advX = safeClamp(ballPos.X + (30 * attackDirX), -halfX + 40, halfX - 30)
+                    return Vector3.new(advX, 3, 34)
+                elseif roleId == "RW" then
+                    local advX = safeClamp(ballPos.X + (30 * attackDirX), -halfX + 40, halfX - 30)
+                    return Vector3.new(advX, 3, -34)
+                end
             end
+
+            -- Default si rol no coincide
+            local leadX = safeClamp(ballPos.X + (35 * attackDirX), -halfX + 30, halfX - 30)
+            return Vector3.new(leadX, 3, base.Z)
+
         elseif hasEnemyPossession then
-            return Vector3.new(18 * attackDirX, 3, safeClamp(ballPos.Z * 0.35, -35, 35))
+            -- TÁCTICA DEFENSIVA DEL DELANTERO
+            if defTactic == "BloqueBajo" then
+                -- ST retrocede al mediocampo preparado para montar el contraataque
+                local waitX = ownGoalX + (80 * attackDirX)
+                return Vector3.new(waitX, 3, safeClamp(ballPos.Z * 0.3, -25, 25))
+            elseif defTactic == "PresionAlta" or defTactic == "Contrapresion" then
+                -- Presiona en campo rival cerca de salida defensiva
+                local pressX = ballPos.X - (15 * attackDirX)
+                return Vector3.new(pressX, 3, ballPos.Z * 0.6)
+            elseif defTactic == "LineaAdelantada" then
+                local midX = 12 * attackDirX
+                return Vector3.new(midX, 3, safeClamp(ballPos.Z * 0.4, -30, 30))
+            else -- Zona
+                return Vector3.new(22 * attackDirX, 3, safeClamp(ballPos.Z * 0.35, -35, 35))
+            end
         else
             return Vector3.new(35 * attackDirX, 3, base.Z * 0.5)
         end
@@ -2131,52 +2275,110 @@ local function getTacticalPosition(
     elseif role == "Central" then
         if hasTeamPossession then
             if slot.roleId == "CDM" then
-                -- Pivote de apoyo seguro detrás de la línea de pase
-                local safeX = (ballPos.X * 0.5) + (10 * attackDirX)
-                local safeZ = safeClamp(ballPos.Z * 0.35, -25, 25)
-                return Vector3.new(safeClamp(safeX, -halfX + 60, halfX - 60), 3, safeZ)
+                -- Pivote de seguridad y equilibrio
+                local safeDist = if offTactic == "Contraataque" then 15 else 8
+                local safeX = (ballPos.X * 0.5) + (safeDist * attackDirX)
+                local safeZ = safeClamp(ballPos.Z * 0.3, -24, 24)
+                return Vector3.new(safeClamp(safeX, -halfX + 55, halfX - 55), 3, safeZ)
             else
-                -- Interiores (CM1, CM2): se abren activamente para ofrecer línea de pase limpia
-                local advancedX = (ballPos.X * 0.6) + (35 * attackDirX)
-                local sideOffset = if slot.roleId == "CM1" then 32 else -32
-                -- Si el portador está en el mismo cuadrante Z, abrirse hacia la banda libre
-                local laneZ = sideOffset
-                if math.abs(ballPos.Z - sideOffset) < 18 then
-                    laneZ = sideOffset + (if sideOffset > 0 then 18 else -18)
+                -- Interiores (CM1, CM2)
+                local sideOffset = if slot.roleId == "CM1" then 30 else -30
+                if offTactic == "Posesion" then
+                    -- Triángulos de apoyo corto y dinámico
+                    local triX = ballPos.X + (16 * attackDirX)
+                    local triZ = if slot.roleId == "CM1" then ballPos.Z + 22 else ballPos.Z - 22
+                    return Vector3.new(safeClamp(triX, -halfX + 60, halfX - 45), 3, safeClamp(triZ, -65, 65))
+                elseif offTactic == "AtaqueVertical" then
+                    -- Uno avanza rápido a segunda jugada y otro cubre
+                    if slot.roleId == "CM1" then
+                        local advX = ballPos.X + (32 * attackDirX)
+                        return Vector3.new(safeClamp(advX, -halfX + 65, halfX - 35), 3, sideOffset)
+                    else
+                        local coverX = ballPos.X + (10 * attackDirX)
+                        return Vector3.new(safeClamp(coverX, -halfX + 55, halfX - 50), 3, sideOffset * 0.6)
+                    end
+                elseif offTactic == "AtaqueBandas" then
+                    -- Uno se vuelca a dar apoyo al extremo y el otro acompaña en la frontal
+                    if (slot.roleId == "CM1" and ballPos.Z > 0) or (slot.roleId == "CM2" and ballPos.Z < 0) then
+                        local wingSupportX = ballPos.X + (12 * attackDirX)
+                        local wingSupportZ = safeClamp(ballPos.Z * 0.75, -55, 55)
+                        return Vector3.new(safeClamp(wingSupportX, -halfX + 60, halfX - 40), 3, wingSupportZ)
+                    else
+                        local boxEdgeX = enemyGoalPos.X - (34 * attackDirX)
+                        return Vector3.new(boxEdgeX, 3, 0)
+                    end
+                elseif offTactic == "SobrecargaCentral" then
+                    -- Ambos interiores se agrupan en pasillo central para tocar rápido en corto
+                    local groupX = ballPos.X + (15 * attackDirX)
+                    local groupZ = if slot.roleId == "CM1" then 14 else -14
+                    return Vector3.new(safeClamp(groupX, -halfX + 60, halfX - 45), 3, groupZ)
+                else
+                    local advancedX = (ballPos.X * 0.6) + (32 * attackDirX)
+                    return Vector3.new(safeClamp(advancedX, -halfX + 70, halfX - 45), 3, safeClamp(sideOffset, -65, 65))
                 end
-                return Vector3.new(safeClamp(advancedX, -halfX + 75, halfX - 45), 3, safeClamp(laneZ, -75, 75))
             end
+
         elseif hasEnemyPossession then
-            local ownGoalX = -enemyGoalPos.X
-            local shieldX = ownGoalX + (85 * attackDirX)
-            return Vector3.new(shieldX, 3, base.Z * 0.7)
+            if defTactic == "BloqueBajo" then
+                -- CMs compactan la frontal del área y niegan huecos entre líneas
+                local wallX = ownGoalX + (45 * attackDirX)
+                local wallZ = if slot.roleId == "CDM" then 0 elseif slot.roleId == "CM1" then 20 else -20
+                return Vector3.new(wallX, 3, wallZ)
+            elseif defTactic == "PresionAlta" or defTactic == "Contrapresion" then
+                -- Uno salta a tapar línea y otro protege eje
+                local pressX = ballPos.X - (18 * attackDirX)
+                local pressZ = if slot.roleId == "CM1" then safeClamp(ballPos.Z + 15, -45, 45) else safeClamp(ballPos.Z - 15, -45, 45)
+                return Vector3.new(pressX, 3, pressZ)
+            elseif defTactic == "LineaAdelantada" then
+                local lineX = ownGoalX + (78 * attackDirX)
+                return Vector3.new(lineX, 3, base.Z * 0.6)
+            else -- Zona
+                local shieldX = ownGoalX + (68 * attackDirX)
+                return Vector3.new(shieldX, 3, base.Z * 0.6)
+            end
         else
-            return Vector3.new(base.X + (25 * attackDirX), 3, base.Z)
+            return Vector3.new(base.X + (20 * attackDirX), 3, base.Z)
         end
 
     elseif role == "Defensa" then
         if hasEnemyPossession then
-            local ownGoalX = -enemyGoalPos.X
-            -- Los laterales (LB, RB) vigilan sus bandas y entran a tapar si el balón o un extremo rival está abierto
-            if slot.roleId == "LB" or slot.roleId == "RB" then
-                local defLineX = ownGoalX + (55 * attackDirX)
-                local trackZ = if math.abs(ballPos.Z - base.Z) < 35 then ballPos.Z else base.Z
-                return Vector3.new(defLineX, 3, trackZ)
-            else
-                -- Los centrales (CB1, CB2) forman el embudo central
-                local defLineX = ownGoalX + (42 * attackDirX)
-                local shiftedZ = safeClamp(base.Z + (ballPos.Z * 0.35), -38, 38)
-                return Vector3.new(defLineX, 3, shiftedZ)
+            local defLineDist = 42
+            if defTactic == "BloqueBajo" then
+                defLineDist = 30 -- Pegados al área propia protegiendo disparos
+            elseif defTactic == "PresionAlta" then
+                defLineDist = 58 -- Línea defensiva empujada hacia arriba
+            elseif defTactic == "LineaAdelantada" then
+                defLineDist = 65 -- Bloque alto coordinado
+            elseif defTactic == "Contrapresion" then
+                defLineDist = 52
+            else -- Zona
+                defLineDist = 38
             end
-        elseif hasTeamPossession then
-            -- Laterales (LB, RB) doblan por la banda y ofrecen salida activa
+
             if slot.roleId == "LB" or slot.roleId == "RB" then
-                local wingX = safeClamp(ballPos.X - (5 * attackDirX), -halfX + 70, halfX - 40)
-                return Vector3.new(wingX, 3, base.Z)
+                local fullBackX = ownGoalX + ((defLineDist + 8) * attackDirX)
+                local trackZ = if math.abs(ballPos.Z - base.Z) < 36 then ballPos.Z else base.Z
+                return Vector3.new(fullBackX, 3, trackZ)
             else
-                -- Centrales aseguran la retaguardia
-                local ownGoalX = -enemyGoalPos.X
-                local safeLineX = ownGoalX + (90 * attackDirX)
+                local centerBackX = ownGoalX + (defLineDist * attackDirX)
+                local shiftedZ = safeClamp(base.Z + (ballPos.Z * 0.3), -32, 32)
+                return Vector3.new(centerBackX, 3, shiftedZ)
+            end
+
+        elseif hasTeamPossession then
+            if slot.roleId == "LB" or slot.roleId == "RB" then
+                -- Lateral se incorpora si la táctica lo amerita (Ataque Bandas o Posesión)
+                if offTactic == "AtaqueBandas" then
+                    local wingX = safeClamp(ballPos.X + (10 * attackDirX), -halfX + 70, halfX - 35)
+                    return Vector3.new(wingX, 3, base.Z)
+                else
+                    local wingX = safeClamp(ballPos.X - (8 * attackDirX), -halfX + 65, halfX - 45)
+                    return Vector3.new(wingX, 3, base.Z)
+                end
+            else
+                -- Centrales aseguran cobertura escalonada
+                local safeDist = if offTactic == "AtaqueVertical" or offTactic == "Contraataque" then 72 else 85
+                local safeLineX = ownGoalX + (safeDist * attackDirX)
                 return Vector3.new(safeLineX, 3, base.Z)
             end
         else
@@ -2345,7 +2547,13 @@ local function updateBotSlotAI(
             end
         end
 
-        if nearestEnemyHrp and nearestEnemyDist < 26 then
+        local dribbleBonus = 0
+        local offTactic = (slot.tactic and slot.tactic.offensive) or "Posesion"
+        if offTactic == "AtaqueVertical" or offTactic == "Contraataque" then
+            dribbleBonus = 5
+        end
+
+        if nearestEnemyHrp and nearestEnemyDist < (26 + dribbleBonus) then
             local toRival = nearestEnemyHrp.Position - hrp.Position
             if forwardDir:Dot(toRival.Unit) > 0.15 then
                 -- Opciones de regate según el stat de regate del jugador
@@ -2357,14 +2565,12 @@ local function updateBotSlotAI(
 
                 -- Si tiene buen regate (>= 80), realiza cambio de ritmo / aceleración explosiva
                 local normalSpeed = getWalkSpeedFromStat(botStats.speed)
-                if botStats.dribble >= 80 then
-                    humanoid.WalkSpeed = normalSpeed * 1.25
-                else
-                    humanoid.WalkSpeed = normalSpeed
-                end
+                local dribbleMultiplier = if botStats.dribble >= 88 then 1.35 elseif botStats.dribble >= 80 then 1.25 else 1.05
+                humanoid.WalkSpeed = normalSpeed * dribbleMultiplier
 
                 -- Finta / recorte hacia espacio libre
-                moveTarget = hrp.Position + ((forwardDir * 0.5 + dodgeDir * 0.7).Unit * 28)
+                local pushDist = if offTactic == "Contraataque" then 34 else 28
+                moveTarget = hrp.Position + ((forwardDir * 0.5 + dodgeDir * 0.7).Unit * pushDist)
             end
         else
             humanoid.WalkSpeed = getWalkSpeedFromStat(botStats.speed)
@@ -2426,27 +2632,52 @@ local function updateBotSlotAI(
                 return
             end
 
-            -- 2. MARCAJE AL HOMBRE ESTRICTO PARA TODOS LOS JUGADORES
-            -- Vigilar, anticipar y limitar los movimientos del adversario emparejado
-            local assignedOpp = getAssignedMarkTarget(slot, enemyTeam)
-            if assignedOpp and assignedOpp.model and assignedOpp.model.Parent then
-                local oppHrp = assignedOpp.model:FindFirstChild("HumanoidRootPart") :: BasePart?
-                if oppHrp then
-                    -- Posición de marca: entre el adversario y nuestra portería, pegado a 4.0 studs
-                    local toOwnGoal = (Vector3.new(ownGoalX, 3, 0) - oppHrp.Position).Unit
-                    -- Anticipar movimiento del rival según su velocidad lineal
-                    local oppVel = oppHrp.AssemblyLinearVelocity
-                    local leadVector = Vector3.new(oppVel.X, 0, oppVel.Z) * 0.25
-                    local markPosition = oppHrp.Position + (toOwnGoal * 4.0) + leadVector
-                    humanoid:MoveTo(markPosition)
-                    return
-                end
-            end
+            -- SISTEMA DE DEFENSA: ZONAL, BLOQUE BAJO, O MARCAJE AL HOMBRE SEGÚN TÁCTICA
+            local defTactic = (slot.tactic and slot.tactic.defensive) or "Zona"
 
-            -- Si no tiene marca directa, mantener la formación táctica
-            local tacticalPos = getTacticalPosition(slot, false, true, ballPos, enemyGoalPos)
-            humanoid:MoveTo(tacticalPos)
-            return
+            if defTactic == "Zona" then
+                -- En defensa en zona, solo marcan al rival si entra dentro de su cuadrante asignado (< 24 studs de su posición táctica)
+                local tacticalPos = getTacticalPosition(slot, false, true, ballPos, enemyGoalPos)
+                local assignedOpp = getAssignedMarkTarget(slot, enemyTeam)
+                local oppCloseInZone = false
+                if assignedOpp and assignedOpp.model and assignedOpp.model.Parent then
+                    local oppHrp = assignedOpp.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                    if oppHrp and (oppHrp.Position - tacticalPos).Magnitude < 24 then
+                        oppCloseInZone = true
+                        local toOwnGoal = (Vector3.new(ownGoalX, 3, 0) - oppHrp.Position).Unit
+                        local markPosition = oppHrp.Position + (toOwnGoal * 5.0)
+                        humanoid:MoveTo(markPosition)
+                        return
+                    end
+                end
+                humanoid:MoveTo(tacticalPos)
+                return
+
+            elseif defTactic == "BloqueBajo" then
+                -- Bloque bajo: permanecen en bloque compacto cerca de la frontal cerrando líneas de disparo
+                local tacticalPos = getTacticalPosition(slot, false, true, ballPos, enemyGoalPos)
+                humanoid:MoveTo(tacticalPos)
+                return
+
+            else
+                -- Presión Alta, Contrapresión o Línea Adelantada: marcaje activo y persecución coordinada
+                local assignedOpp = getAssignedMarkTarget(slot, enemyTeam)
+                if assignedOpp and assignedOpp.model and assignedOpp.model.Parent then
+                    local oppHrp = assignedOpp.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                    if oppHrp then
+                        local toOwnGoal = (Vector3.new(ownGoalX, 3, 0) - oppHrp.Position).Unit
+                        local oppVel = oppHrp.AssemblyLinearVelocity
+                        local leadVector = Vector3.new(oppVel.X, 0, oppVel.Z) * 0.25
+                        local markPosition = oppHrp.Position + (toOwnGoal * 4.0) + leadVector
+                        humanoid:MoveTo(markPosition)
+                        return
+                    end
+                end
+
+                local tacticalPos = getTacticalPosition(slot, false, true, ballPos, enemyGoalPos)
+                humanoid:MoveTo(tacticalPos)
+                return
+            end
         end
     end
 
@@ -2499,6 +2730,17 @@ local function runTeamCoordinator(
     local ownGoalX = -enemyGoalPos.X
     local distToOurGoal = math.abs(targetItemPos.X - ownGoalX)
 
+    -- Verificación de contrapresión (Gegenpressing):
+    -- Si acabamos de perder la posesión hace menos de 5 segundos, el rival más cercano presiona inmediatamente
+    local isGegenpressActive = false
+    local firstSlot = nil
+    for _, s in pairs(allyTeam) do firstSlot = s break end
+    if firstSlot and firstSlot.tactic and firstSlot.tactic.defensive == "Contrapresion" then
+        if previousPossessionTeam == firstSlot.teamName and (now - lastTeamPossessionChangeTime < 5.0) then
+            isGegenpressActive = true
+        end
+    end
+
     for roleId, slot in pairs(allyTeam) do
         if slot.model and slot.model.Parent and slot.role ~= "Portero" then
             local hrp = slot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -2506,6 +2748,23 @@ local function runTeamCoordinator(
             if hrp and hum and hum.Health > 0 then
                 local dist = (hrp.Position - targetItemPos).Magnitude
                 local distWeight = dist
+
+                local defTactic = (slot.tactic and slot.tactic.defensive) or "Zona"
+
+                if isGegenpressActive then
+                    -- En contrapresión inmediata, el jugador más cercano salta sin importar el rol
+                    distWeight = dist * 0.5
+                elseif defTactic == "PresionAlta" then
+                    -- En presión alta, ST y extremos tienen bono para acosar la salida
+                    if slot.role == "Delantero" then
+                        distWeight = distWeight * 0.65
+                    end
+                elseif defTactic == "BloqueBajo" then
+                    -- En bloque bajo, los delanteros no van a presionar a fondo; solo la contención
+                    if slot.role == "Delantero" then
+                        distWeight = distWeight * 1.6
+                    end
+                end
 
                 -- Si el portador viene por el centro hacia el área propia, CBs y CDM deben salir a frenarlo sin penalización
                 if slot.roleId == "CDM" and math.abs(targetItemPos.Z) < 35 then
