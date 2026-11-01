@@ -2181,8 +2181,55 @@ local function getTacticalPosition(
 end
 
 --------------------------------------------------------------------------------
--- 16. IA INDIVIDUAL DE LOS BOTS
+-- 16. SISTEMA GLOBAL DE MARCAJE AL HOMBRE Y VIGILANCIA (1v1 Direct Man-Marking)
 --------------------------------------------------------------------------------
+local ROLE_MARK_TARGETS: { [string]: {string} } = {
+    ["ST"]  = { "CB1", "CB2", "CDM" },
+    ["LW"]  = { "RB", "CB2", "CM2" },
+    ["RW"]  = { "LB", "CB1", "CM1" },
+    ["CM1"] = { "CM2", "CDM", "CM1" },
+    ["CM2"] = { "CM1", "CDM", "CM2" },
+    ["CDM"] = { "ST", "CM1", "CM2" },
+    ["LB"]  = { "RW", "ST", "CM2" },
+    ["RB"]  = { "LW", "ST", "CM1" },
+    ["CB1"] = { "ST", "RW", "CM1" },
+    ["CB2"] = { "ST", "LW", "CM2" },
+}
+
+local function getAssignedMarkTarget(slot: BotSlot, enemyTeam: { [string]: BotSlot }): BotSlot?
+    local targets = ROLE_MARK_TARGETS[slot.roleId]
+    if targets then
+        for _, tRoleId in ipairs(targets) do
+            local oppSlot = enemyTeam[tRoleId]
+            if oppSlot and oppSlot.model and oppSlot.model ~= currentOwner and oppSlot.model.Parent then
+                local oHum = oppSlot.model:FindFirstChildOfClass("Humanoid")
+                if oHum and oHum.Health > 0 then
+                    return oppSlot
+                end
+            end
+        end
+    end
+
+    local hrp = slot.model and slot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+    if not hrp then return nil end
+
+    local closest: BotSlot? = nil
+    local minD = 9999
+    for _, oppSlot in pairs(enemyTeam) do
+        if oppSlot.model and oppSlot.model ~= currentOwner and oppSlot.model.Parent and oppSlot.role ~= "Portero" then
+            local oHrp = oppSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+            if oHrp then
+                local d = (oHrp.Position - hrp.Position).Magnitude
+                if d < minD then
+                    minD = d
+                    closest = oppSlot
+                end
+            end
+        end
+    end
+    return closest
+end
+
 local function updateBotSlotAI(
     slot: BotSlot,
     allyTeam: { [string]: BotSlot },
@@ -2372,32 +2419,24 @@ local function updateBotSlotAI(
                 return
             end
 
-            -- 2. Marcaje activo sobre los atacantes rivales sin balón
-            local bestMarkTarget: Vector3? = nil
-            local minThreatDist = 999
-
-            for _, oppSlot in pairs(enemyTeam) do
-                if oppSlot.model and oppSlot.model ~= currentOwner and oppSlot.model.Parent and oppSlot.role ~= "Portero" then
-                    local oppHrp = oppSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
-                    if oppHrp then
-                        local distToOpp = (oppHrp.Position - hrp.Position).Magnitude
-                        -- Marcar si está en su sector (hasta 75 studs de radio de acción)
-                        if distToOpp < 75 and distToOpp < minThreatDist then
-                            minThreatDist = distToOpp
-                            -- Colocarse entre el rival y la portería propia a 4.5 studs para anticipar pase
-                            local toGoal = (Vector3.new(ownGoalX, 3, 0) - oppHrp.Position).Unit
-                            bestMarkTarget = oppHrp.Position + (toGoal * 4.5)
-                        end
-                    end
+            -- 2. MARCAJE AL HOMBRE ESTRICTO PARA TODOS LOS JUGADORES
+            -- Vigilar, anticipar y limitar los movimientos del adversario emparejado
+            local assignedOpp = getAssignedMarkTarget(slot, enemyTeam)
+            if assignedOpp and assignedOpp.model and assignedOpp.model.Parent then
+                local oppHrp = assignedOpp.model:FindFirstChild("HumanoidRootPart") :: BasePart?
+                if oppHrp then
+                    -- Posición de marca: entre el adversario y nuestra portería, pegado a 4.0 studs
+                    local toOwnGoal = (Vector3.new(ownGoalX, 3, 0) - oppHrp.Position).Unit
+                    -- Anticipar movimiento del rival según su velocidad lineal
+                    local oppVel = oppHrp.AssemblyLinearVelocity
+                    local leadVector = Vector3.new(oppVel.X, 0, oppVel.Z) * 0.25
+                    local markPosition = oppHrp.Position + (toOwnGoal * 4.0) + leadVector
+                    humanoid:MoveTo(markPosition)
+                    return
                 end
             end
 
-            if bestMarkTarget then
-                humanoid:MoveTo(bestMarkTarget)
-                return
-            end
-
-            -- Si no hay atacante cercano, mantener la formación táctica
+            -- Si no tiene marca directa, mantener la formación táctica
             local tacticalPos = getTacticalPosition(slot, false, true, ballPos, enemyGoalPos)
             humanoid:MoveTo(tacticalPos)
             return
