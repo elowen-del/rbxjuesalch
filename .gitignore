@@ -1,4 +1,8 @@
 rojo.exe
 *.zip
+*.rbxl
+*.rbxlx
 .system_generated/
-
+extract.project.json
+full.project.json
+extracted/

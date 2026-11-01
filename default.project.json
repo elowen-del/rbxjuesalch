@@ -5,7 +5,17 @@
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "Prueba1Server": {
+        "$properties": {
+          "SerializedOverrides": {
+            "BinaryString": ""
+          }
+        },
         "$path": "src/server"
+      },
+      "$properties": {
+        "SerializedOverrides": {
+          "BinaryString": ""
+        }
       }
     },
     "StarterPlayer": {
@@ -13,10 +23,31 @@
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
         "Prueba1Client": {
+          "$properties": {
+            "SerializedOverrides": {
+              "BinaryString": ""
+            }
+          },
           "$path": "src/client"
+        },
+        "$properties": {
+          "SerializedOverrides": {
+            "BinaryString": ""
+          }
+        }
+      },
+      "$properties": {
+        "AvatarJointUpgrade": "Enabled",
+        "CameraMaxZoomDistance": 128.0,
+        "CharacterBreakJointsOnDeath": false,
+        "CharacterUseJumpPower": false,
+        "SerializedOverrides": {
+          "BinaryString": ""
+        },
+        "UseImprovedCharacterEvents": {
+          "Enum": 0
         }
       }
     }
   }
 }
-
