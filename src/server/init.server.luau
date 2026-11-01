@@ -919,6 +919,7 @@ local goalkeeperBlue: Model? = nil
 local goalkeeperRed: Model? = nil
 local gkSlotBlue: BotSlot? = nil
 local gkSlotRed: BotSlot? = nil
+local refereeModel: Model? = nil
 
 --------------------------------------------------------------------------------
 -- 7. SISTEMA DE TIEMPO DE PARTIDO: 90 MINUTOS (5 MIN REALES)
@@ -1395,6 +1396,87 @@ local function setupGoalkeeperModel(
     return gk, slot
 end
 
+local function spawnReferee(): Model
+    if refereeModel and refereeModel.Parent then refereeModel:Destroy() end
+
+    local ref = Instance.new("Model")
+    ref.Name = "Arbitro_Principal"
+
+    local function makePart(pName: string, size: Vector3, color: Color3): Part
+        local p = Instance.new("Part")
+        p.Name = pName
+        p.Size = size
+        p.Color = color
+        p.Material = Enum.Material.SmoothPlastic
+        p.CanCollide = true
+        p.Parent = ref
+        return p
+    end
+
+    local hrp = makePart("HumanoidRootPart", Vector3.new(2, 2, 1), Color3.fromRGB(150, 150, 150))
+    hrp.Transparency = 1
+    hrp.CanCollide = false
+    hrp.CFrame = CFrame.new(0, 3, 20)
+
+    -- Uniforme tradicional de árbitro (camiseta amarillo flúor / negro con silbato)
+    local torso = makePart("Torso", Vector3.new(2, 2, 1), Color3.fromRGB(240, 240, 20))
+    local head = makePart("Head", Vector3.new(1.25, 1.25, 1.25), Color3.fromRGB(240, 200, 160))
+    local headMesh = Instance.new("SpecialMesh")
+    headMesh.MeshType = Enum.MeshType.Head
+    headMesh.Scale = Vector3.new(1.25, 1.25, 1.25)
+    headMesh.Parent = head
+
+    local leftArm = makePart("Left Arm", Vector3.new(1, 2, 1), Color3.fromRGB(20, 20, 20))
+    local rightArm = makePart("Right Arm", Vector3.new(1, 2, 1), Color3.fromRGB(20, 20, 20))
+    local leftLeg = makePart("Left Leg", Vector3.new(1, 2, 1), Color3.fromRGB(20, 20, 20))
+    local rightLeg = makePart("Right Leg", Vector3.new(1, 2, 1), Color3.fromRGB(20, 20, 20))
+
+    local function makeMotor(mName: string, part0: BasePart, part1: BasePart, c0: CFrame, c1: CFrame)
+        local m = Instance.new("Motor6D")
+        m.Name = mName
+        m.Part0 = part0
+        m.Part1 = part1
+        m.C0 = c0
+        m.C1 = c1
+        m.Parent = part0
+    end
+
+    makeMotor("RootJoint", hrp, torso, CFrame.new(0, 0, 0), CFrame.new(0, 0, 0))
+    makeMotor("Neck", torso, head, CFrame.new(0, 1, 0), CFrame.new(0, -0.5, 0))
+    makeMotor("Left Shoulder", torso, leftArm, CFrame.new(-1, 0.5, 0), CFrame.new(0.5, 0.5, 0))
+    makeMotor("Right Shoulder", torso, rightArm, CFrame.new(1, 0.5, 0), CFrame.new(-0.5, 0.5, 0))
+    makeMotor("Left Hip", torso, leftLeg, CFrame.new(-0.5, -1, 0), CFrame.new(0, 1, 0))
+    makeMotor("Right Hip", torso, rightLeg, CFrame.new(0.5, -1, 0), CFrame.new(0, 1, 0))
+
+    local humanoid = Instance.new("Humanoid")
+    humanoid.MaxHealth = 100
+    humanoid.Health = 100
+    humanoid.WalkSpeed = 26
+    humanoid.Parent = ref
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "RefereeUI"
+    billboard.Size = UDim2.new(0, 140, 0, 30)
+    billboard.StudsOffset = Vector3.new(0, 3.0, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = head
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "⚖️ ÁRBITRO"
+    label.TextColor3 = Color3.fromRGB(255, 235, 50)
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 14
+    label.Parent = billboard
+
+    ref.PrimaryPart = hrp
+    setupCharacterCollision(ref)
+    ref.Parent = workspace
+    refereeModel = ref
+    return ref
+end
+
 local function areColorsTooSimilar(c1: Color3, c2: Color3): boolean
     local dr = c1.R - c2.R
     local dg = c1.G - c2.G
@@ -1475,7 +1557,9 @@ local function spawnFull6v6Match()
     goalkeeperBlue, gkSlotBlue = setupGoalkeeperModel("Azul", blueGKX, currentClubA, blueGkStats, goalkeeperBlue)
     goalkeeperRed, gkSlotRed = setupGoalkeeperModel("Rojo", redGKX, currentClubB, redGkStats, goalkeeperRed)
 
-    print("[SERVIDOR] ¡12 Jugadores y 2 Porteros listos con stats de EA FC y rareza!")
+    spawnReferee()
+
+    print("[SERVIDOR] ¡11v11 jugadores, porteros y Árbitro listos en el campo!")
 end
 
 --------------------------------------------------------------------------------
@@ -2601,7 +2685,14 @@ local function updateMatchClock()
             isMatchPaused = true
             halftimeRealSecondsLeft = 60
             releaseBall()
-            print("[PARTIDO] ¡DESCANSO! Duración: 60 segundos reales.")
+
+            -- El árbitro recoge el balón para el descanso
+            if refereeModel and currentBall then
+                attachBallToPlayer(refereeModel)
+                local rHum = refereeModel:FindFirstChildOfClass("Humanoid")
+                if rHum then rHum:MoveTo(Vector3.new(0, 3, 25)) end
+            end
+            print("[PARTIDO] ¡DESCANSO! El árbitro se lleva el balón a vestuarios.")
         end
 
     elseif currentMatchState == MATCH_STATE_HALFTIME then
@@ -2653,7 +2744,14 @@ local function updateMatchClock()
             isMatchPaused = true
             fulltimeRealSecondsLeft = 60
             releaseBall()
-            print(string.format("[PARTIDO] ¡FINAL DEL PARTIDO! %s %d - %d %s", currentClubA.name, scoreBlue, scoreRed, currentClubB.name))
+
+            -- El árbitro recoge el balón tras el pitido final
+            if refereeModel and currentBall then
+                attachBallToPlayer(refereeModel)
+                local rHum = refereeModel:FindFirstChildOfClass("Humanoid")
+                if rHum then rHum:MoveTo(Vector3.new(0, 3, 25)) end
+            end
+            print(string.format("[PARTIDO] ¡FINAL DEL PARTIDO! %s %d - %d %s. El árbitro se lleva el balón.", currentClubA.name, scoreBlue, scoreRed, currentClubB.name))
         end
 
     elseif currentMatchState == MATCH_STATE_FULLTIME then
@@ -2799,6 +2897,18 @@ RunService.Heartbeat:Connect(function()
 
         runTeamCoordinator(teamBlueBots, teamRedBots, blueTargetGoal, redGkPos, now)
         runTeamCoordinator(teamRedBots, teamBlueBots, redTargetGoal, blueGkPos, now)
+
+        -- IA del Árbitro en juego: sigue la acción manteniéndose en diagonal a una distancia neutral
+        if refereeModel and refereeModel.Parent and currentBall then
+            local refHrp = refereeModel:FindFirstChild("HumanoidRootPart") :: BasePart?
+            local refHum = refereeModel:FindFirstChildOfClass("Humanoid")
+            if refHrp and refHum then
+                local bPos = currentBall.Position
+                -- Se coloca a unos 22 studs en diagonal al balón sin obstaculizar las jugadas
+                local refTarget = Vector3.new(bPos.X * 0.85, 3, bPos.Z * 0.4 + (if bPos.Z > 0 then -22 else 22))
+                refHum:MoveTo(refTarget)
+            end
+        end
 
         if currentOwner and currentBall and not isKickOnCooldown then
             for _, pl in ipairs(Players:GetPlayers()) do
