@@ -8,45 +8,98 @@ local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
 --------------------------------------------------------------------------------
--- 1. CONFIGURACIÓN DEL PERSONAJE: BLOQUEO DE SALTO Y SPRINT CON SHIFT
+-- 1. CÁMARA AÉREA LIBRE (MODO ESPECTADOR / TV)
 --------------------------------------------------------------------------------
-local WALK_SPEED = 18
-local SPRINT_SPEED = 30
+camera.CameraType = Enum.CameraType.Scriptable
+local camPos = Vector3.new(0, 110, 150)
+local camLookAt = Vector3.new(0, 2, 0)
+camera.CFrame = CFrame.lookAt(camPos, camLookAt)
 
-local function getCustomSpeeds(): (number, number)
-    local char = player.Character
-    if char then
-        local spdVal = char:FindFirstChild("Stat_Speed")
-        if spdVal and spdVal:IsA("NumberValue") then
-            local speedStat = spdVal.Value
-            local wSpd = 16 + (speedStat / 100) * 12
-            local sSpd = 24 + (speedStat / 100) * 16
-            return wSpd, sSpd
-        end
+local isMouseDown = false
+local lastMousePos = Vector2.zero
+local keysDown = {
+    [Enum.KeyCode.W] = false,
+    [Enum.KeyCode.A] = false,
+    [Enum.KeyCode.S] = false,
+    [Enum.KeyCode.D] = false,
+    [Enum.KeyCode.Q] = false,
+    [Enum.KeyCode.E] = false,
+}
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if keysDown[input.KeyCode] ~= nil then
+        keysDown[input.KeyCode] = true
+    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isMouseDown = true
+        lastMousePos = UserInputService:GetMouseLocation()
     end
-    return WALK_SPEED, SPRINT_SPEED
-end
+end)
 
-local isSprinting = false
+UserInputService.InputEnded:Connect(function(input)
+    if keysDown[input.KeyCode] ~= nil then
+        keysDown[input.KeyCode] = false
+    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isMouseDown = false
+    end
+end)
+
+UserInputService.PointerAction:Connect(function(wheel, _pan, _pinch, gpe)
+    if gpe then return end
+    camPos = camPos + camera.CFrame.LookVector * (wheel * 18)
+    camPos = Vector3.new(
+        math.clamp(camPos.X, -220, 220),
+        math.clamp(camPos.Y, 20, 220),
+        math.clamp(camPos.Z, -180, 180)
+    )
+end)
+
+RunService.RenderStepped:Connect(function(dt)
+    local moveDir = Vector3.zero
+    local forward = Vector3.new(camera.CFrame.LookVector.X, 0, camera.CFrame.LookVector.Z).Unit
+    local right = Vector3.new(camera.CFrame.RightVector.X, 0, camera.CFrame.RightVector.Z).Unit
+
+    if keysDown[Enum.KeyCode.W] then moveDir = moveDir + forward end
+    if keysDown[Enum.KeyCode.S] then moveDir = moveDir - forward end
+    if keysDown[Enum.KeyCode.A] then moveDir = moveDir - right end
+    if keysDown[Enum.KeyCode.D] then moveDir = moveDir + right end
+    if keysDown[Enum.KeyCode.E] then moveDir = moveDir + Vector3.new(0, 1, 0) end
+    if keysDown[Enum.KeyCode.Q] then moveDir = moveDir - Vector3.new(0, 1, 0) end
+
+    if moveDir.Magnitude > 0 then
+        camPos = camPos + moveDir.Unit * (110 * dt)
+    end
+
+    camPos = Vector3.new(
+        math.clamp(camPos.X, -220, 220),
+        math.clamp(camPos.Y, 20, 220),
+        math.clamp(camPos.Z, -180, 180)
+    )
+
+    if isMouseDown then
+        local curMouse = UserInputService:GetMouseLocation()
+        local delta = curMouse - lastMousePos
+        lastMousePos = curMouse
+
+        local rotX = -delta.X * 0.003
+        local rotY = -delta.Y * 0.003
+        local curCFrame = camera.CFrame
+        local newRot = CFrame.Angles(0, rotX, 0) * curCFrame.Rotation * CFrame.Angles(rotY, 0, 0)
+        camera.CFrame = CFrame.new(camPos) * newRot
+    else
+        camera.CFrame = CFrame.lookAt(camPos, Vector3.new(camPos.X * 0.6, 0, 0))
+    end
+end)
 
 local function setupCharacter(character: Model)
-    local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
-    if humanoid then
-        humanoid.JumpPower = 0
-        humanoid.JumpHeight = 0
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-        
-        local wSpd = getCustomSpeeds()
-        humanoid.WalkSpeed = wSpd
-        
-        local spdVal = character:WaitForChild("Stat_Speed", 5)
-        if spdVal and spdVal:IsA("NumberValue") then
-            spdVal:GetPropertyChangedSignal("Value"):Connect(function()
-                local curW, curS = getCustomSpeeds()
-                humanoid.WalkSpeed = if isSprinting then curS else curW
-            end)
-            local curW, curS = getCustomSpeeds()
-            humanoid.WalkSpeed = if isSprinting then curS else curW
+    local hrp = character:WaitForChild("HumanoidRootPart", 5) :: BasePart?
+    if hrp then
+        hrp.CFrame = CFrame.new(0, -60, 0)
+    end
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 1
+            part.CanCollide = false
         end
     end
 end
@@ -55,31 +108,6 @@ if player.Character then
     setupCharacter(player.Character)
 end
 player.CharacterAdded:Connect(setupCharacter)
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
-        isSprinting = true
-        local char = player.Character
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            local _, sSpd = getCustomSpeeds()
-            humanoid.WalkSpeed = sSpd
-        end
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input, _gameProcessed)
-    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
-        isSprinting = false
-        local char = player.Character
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            local wSpd, _ = getCustomSpeeds()
-            humanoid.WalkSpeed = wSpd
-        end
-    end
-end)
 
 --------------------------------------------------------------------------------
 -- 2. LOCALIZAR REMOTE EVENTS
@@ -94,6 +122,7 @@ local updateScoreEvent = remoteFolder:WaitForChild("UpdateScore", 15) :: RemoteE
 local shotCooldownEvent = remoteFolder:WaitForChild("ShotCooldown", 15) :: RemoteEvent
 local matchTimeEvent = remoteFolder:WaitForChild("MatchTimeUpdate", 15) :: RemoteEvent
 local goalAnnouncementEvent = remoteFolder:WaitForChild("GoalAnnouncement", 15) :: RemoteEvent
+local toggleMatchEvent = remoteFolder:WaitForChild("ToggleMatch", 15) :: RemoteEvent
 
 --------------------------------------------------------------------------------
 -- 3. INTERFAZ GRÁFICA TELEVISIVA: MARCADOR + RELOJ + NOMBRES DE CLUBES
@@ -212,6 +241,43 @@ statusLabel.TextColor3 = Color3.fromRGB(255, 230, 120)
 statusLabel.Font = Enum.Font.GothamBold
 statusLabel.TextSize = 13
 statusLabel.Parent = statusBanner
+
+-- 4. Botón Interactivo para Iniciar / Pausar Partido (reemplaza /bot)
+local playButton = Instance.new("TextButton")
+playButton.Name = "PlayMatchButton"
+playButton.Size = UDim2.new(0, 130, 0, 36)
+playButton.Position = UDim2.new(0, 18, 0.015, 0)
+playButton.BackgroundColor3 = Color3.fromRGB(0, 170, 85)
+playButton.BorderSizePixel = 0
+playButton.Text = "▶ JUGAR"
+playButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+playButton.Font = Enum.Font.GothamBlack
+playButton.TextSize = 14
+playButton.Parent = screenGui
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = playButton
+
+local btnStroke = Instance.new("UIStroke")
+btnStroke.Color = Color3.fromRGB(255, 255, 255)
+btnStroke.Thickness = 1.5
+btnStroke.Transparency = 0.5
+btnStroke.Parent = playButton
+
+local isMatchPlaying = false
+
+playButton.MouseButton1Click:Connect(function()
+    toggleMatchEvent:FireServer()
+    isMatchPlaying = not isMatchPlaying
+    if isMatchPlaying then
+        playButton.Text = "⏹ DETENER"
+        playButton.BackgroundColor3 = Color3.fromRGB(210, 45, 45)
+    else
+        playButton.Text = "▶ JUGAR"
+        playButton.BackgroundColor3 = Color3.fromRGB(0, 170, 85)
+    end
+end)
 
 -- Evento de actualización del tiempo de partido
 matchTimeEvent.OnClientEvent:Connect(function(minuteText: string, statusText: string, showBanner: boolean)

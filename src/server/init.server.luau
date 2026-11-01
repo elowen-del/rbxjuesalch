@@ -699,6 +699,7 @@ local updateScoreEvent = getOrCreateRemote("UpdateScore")
 local shotCooldownEvent = getOrCreateRemote("ShotCooldown")
 local matchTimeEvent = getOrCreateRemote("MatchTimeUpdate")
 local goalAnnouncementEvent = getOrCreateRemote("GoalAnnouncement")
+local toggleMatchEvent = getOrCreateRemote("ToggleMatch")
 
 --------------------------------------------------------------------------------
 -- 4. CLUBES Y GRADAS CON ESPECTADORES
@@ -1460,7 +1461,7 @@ local function resetPositionsToField()
         local pChar = p.Character
         local pHrp = pChar and pChar:FindFirstChild("HumanoidRootPart") :: BasePart?
         if pHrp then
-            pHrp.CFrame = CFrame.new(humanSpawnX, 3, math.random(-10, 10))
+            pHrp.CFrame = CFrame.new(0, -60, 0)
             pHrp.AssemblyLinearVelocity = Vector3.zero
         end
     end
@@ -2524,7 +2525,32 @@ pcall(function()
     end)
 end)
 
+toggleMatchEvent.OnServerEvent:Connect(function(player)
+    if next(teamBlueBots) == nil then
+        currentPeriodSideSwapped = false
+        currentMatchState = MATCH_STATE_FIRST_HALF
+        matchGameSeconds = 0
+        scoreBlue = 0
+        scoreRed = 0
+        isMatchPaused = false
+        spawnFull6v6Match()
+        resetPositionsToField()
+        spawnBall(CFrame.new(0, 2.5, 0))
+    else
+        cleanTeam(teamBlueBots)
+        cleanTeam(teamRedBots)
+        releaseBall()
+        print("[SERVIDOR] Partido detenido desde botón de interfaz.")
+    end
+end)
+
 Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        local hrp = character:WaitForChild("HumanoidRootPart", 5) :: BasePart?
+        if hrp then
+            hrp.CFrame = CFrame.new(0, -60, 0)
+        end
+    end)
     player.Chatted:Connect(function(msg)
         handleChatMessage(player, msg)
     end)
