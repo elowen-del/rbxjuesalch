@@ -354,27 +354,27 @@ local ROBLOX_PLAYERS_DATA: {PlayerStats} = {
 local characterStats: { [Model]: PlayerStats } = {}
 
 local function getWalkSpeedFromStat(speedStat: number): number
-    return 14 + (speedStat / 100) * 10
+    return 18 + (speedStat / 100) * 14 -- 26 a 32 studs/s
 end
 
 local function getSprintSpeedFromStat(speedStat: number): number
-    return 22 + (speedStat / 100) * 14
+    return 26 + (speedStat / 100) * 16 -- 35 a 42 studs/s
 end
 
 local function getStealRadiusFromStat(defenseStat: number): number
-    return 4.2 + (defenseStat / 100) * 3.4
+    return 6.5 + (defenseStat / 100) * 4.5 -- 8.5 a 11 studs
 end
 
 local function getStealCooldownFromStat(defenseStat: number): number
-    return 3.5 - (defenseStat / 100) * 1.8
+    return 2.5 - (defenseStat / 100) * 1.5 -- 1.0s a 2.0s
 end
 
 local function getShotPowerMultiplier(shotStat: number): number
-    return 0.6 + (shotStat / 100) * 0.75
+    return 0.8 + (shotStat / 100) * 0.85 -- 1.2x a 1.65x
 end
 
 local function getShotRangeFromStat(shotStat: number): number
-    return 42 + (shotStat / 100) * 58
+    return 75 + (shotStat / 100) * 75 -- 105 a 150 studs de rango de tiro efectivo
 end
 
 --------------------------------------------------------------------------------
@@ -1355,7 +1355,7 @@ local function executeClearance(botSlot: BotSlot, enemyGoalPos: Vector3)
     task.delay(0.5, function() isKickOnCooldown = false end)
 end
 
--- Posicionamiento Táctico: Transición fluida Bloque Bajo vs Ataque
+-- Posicionamiento Táctico Dinámico y Ofensivo
 local function getTacticalPosition(
     slot: BotSlot,
     hasTeamPossession: boolean,
@@ -1370,47 +1370,45 @@ local function getTacticalPosition(
 
     if role == "Delantero" then
         if hasTeamPossession then
-            -- ATAQUE: Desmarcarse cerca de la línea defensiva rival
-            local attackX = (halfX - 45) * attackDirX
-            local flankZ = math.clamp(ballPos.Z * 0.75, -50, 50)
+            -- ATAQUE: Meterse dentro o al borde del área rival listo para rematar
+            local attackX = (halfX - 30) * attackDirX
+            local flankZ = math.clamp(ballPos.Z * 0.6, -35, 35)
             return Vector3.new(attackX, 3, flankZ)
         elseif hasEnemyPossession then
-            -- BLOQUE BAJO: Retroceder a tres cuartos propios para preparar el contraataque
-            return Vector3.new(25 * attackDirX, 3, math.clamp(ballPos.Z * 0.35, -35, 35))
+            -- Esperar cerca de la línea media para desmarque rápido
+            return Vector3.new(15 * attackDirX, 3, math.clamp(ballPos.Z * 0.3, -30, 30))
         else
-            return Vector3.new(45 * attackDirX, 3, 0)
+            return Vector3.new(35 * attackDirX, 3, 0)
         end
 
     elseif role == "Central" then
         if hasTeamPossession then
-            -- ATAQUE: Uno avanza al borde del área rival y el otro mantiene equilibrio
+            -- ATAQUE: Centrales se suman con fuerza al ataque
             if slot.roleId == "CM1" then
-                local advancedX = (ballPos.X * 0.55) + (35 * attackDirX)
-                return Vector3.new(math.clamp(advancedX, -halfX + 70, halfX - 70), 3, base.Z + (ballPos.Z * 0.2))
+                local advancedX = (ballPos.X * 0.6) + (45 * attackDirX)
+                return Vector3.new(math.clamp(advancedX, -halfX + 75, halfX - 75), 3, base.Z + (ballPos.Z * 0.2))
             else
-                local safeX = (ballPos.X * 0.4) - (15 * attackDirX)
-                return Vector3.new(math.clamp(safeX, -halfX + 50, halfX - 50), 3, base.Z * 0.8)
+                local safeX = (ballPos.X * 0.5) + (10 * attackDirX)
+                return Vector3.new(math.clamp(safeX, -halfX + 55, halfX - 55), 3, base.Z * 0.8)
             end
         elseif hasEnemyPossession then
-            -- BLOQUE BAJO: Repliegue hacia la frontal del área propia
             local ownGoalX = -enemyGoalPos.X
-            local shieldX = ownGoalX + (65 * attackDirX)
-            return Vector3.new(shieldX, 3, base.Z * 0.75)
+            local shieldX = ownGoalX + (75 * attackDirX)
+            return Vector3.new(shieldX, 3, base.Z * 0.8)
         else
-            return base
+            return Vector3.new(base.X + (20 * attackDirX), 3, base.Z)
         end
 
     elseif role == "Defensa" then
         if hasEnemyPossession then
-            -- BLOQUE BAJO: Formación compacta delante del área pequeña y grande
             local ownGoalX = -enemyGoalPos.X
-            local defLineX = ownGoalX + (44 * attackDirX)
+            local defLineX = ownGoalX + (55 * attackDirX)
             local shiftedZ = math.clamp(base.Z + (ballPos.Z * 0.35), -60, 60)
             return Vector3.new(defLineX, 3, shiftedZ)
         elseif hasTeamPossession then
-            -- ATAQUE: Adelantar la línea defensiva hasta la mitad de cancha para compactar
+            -- Subir la línea defensiva a mitad de campo para presionar y recuperar
             local ownGoalX = -enemyGoalPos.X
-            local advancedLineX = ownGoalX + (85 * attackDirX)
+            local advancedLineX = ownGoalX + (105 * attackDirX)
             return Vector3.new(advancedLineX, 3, base.Z)
         else
             return base
@@ -1469,14 +1467,15 @@ local function updateBotSlotAI(
         local shotMultiplier = getShotPowerMultiplier(botStats.shot)
         local triggerRange = getShotRangeFromStat(botStats.shot)
 
-        if distToEnemyGoal < triggerRange and (now - slot.lastShotTime >= SHOT_COOLDOWN_TIME) and not isKickOnCooldown then
+        -- DISPARO OFENSIVO INMEDIATO: Si está a tiro, CHUTAR
+        if distToEnemyGoal < triggerRange and (now - slot.lastShotTime >= 2.5) and not isKickOnCooldown then
             slot.lastShotTime = now
             releaseBall()
             isKickOnCooldown = true
 
             local goalPostTarget = enemyGoalPos
             if botStats.shot >= 85 then
-                local sideOffset = if math.random() > 0.5 then (GOAL_WIDTH / 2 - 2) else -(GOAL_WIDTH / 2 - 2)
+                local sideOffset = if math.random() > 0.5 then (GOAL_WIDTH / 2 - 3) else -(GOAL_WIDTH / 2 - 3)
                 goalPostTarget = enemyGoalPos + Vector3.new(0, math.random(2, 6), sideOffset)
             else
                 local errorSpread = (100 - botStats.shot) * 0.12
@@ -1485,39 +1484,42 @@ local function updateBotSlotAI(
 
             local shootDir = (goalPostTarget - hrp.Position).Unit
             local isAerial = (math.random(1, 100) <= 50)
-            local liftY = if isAerial then math.random(22, 34) else math.random(8, 14)
-            local speed = (115 * shotMultiplier)
+            local liftY = if isAerial then math.random(20, 32) else math.random(8, 14)
+            local speed = (135 * shotMultiplier)
 
-            currentBall.CFrame = currentBall.CFrame + (shootDir * 2.2)
+            currentBall.CFrame = currentBall.CFrame + (shootDir * 2.5)
             currentBall.AssemblyLinearVelocity = (shootDir * speed) + Vector3.new(0, liftY, 0)
-            if botStats.shot >= 88 then igniteBallInFlames(2.5) end
+            currentBall.AssemblyAngularVelocity = Vector3.new(-shootDir.Z, 0, shootDir.X) * 50
+            if botStats.shot >= 85 then igniteBallInFlames(2.5) end
 
-            task.delay(0.5, function() isKickOnCooldown = false end)
+            task.delay(0.4, function() isKickOnCooldown = false end)
             return
         end
 
+        -- PASE TÁCTICO: Pasar hacia un compañero mejor ubicado si no está a tiro
         local timeSincePass = now - slot.lastPassTime
-        if timeSincePass > 1.8 and not isKickOnCooldown then
+        if timeSincePass > 1.4 and not isKickOnCooldown then
             local bestTarget, targetScore = findBestPassTarget(slot, allyTeam, enemyTeam)
-            if bestTarget and (targetScore > 15 or distToEnemyGoal > 110) then
+            if bestTarget and targetScore > 8 then
                 executePass(slot, bestTarget)
                 return
             end
         end
 
+        -- CONDUCCIÓN AGRESIVA HACIA LA PORTERÍA RIVAL
         local forwardDir = (Vector3.new(enemyGoalPos.X, 0, enemyGoalPos.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).Unit
-        local moveTarget = hrp.Position + (forwardDir * 25)
+        local moveTarget = hrp.Position + (forwardDir * 35)
 
         for _, eSlot in pairs(enemyTeam) do
             if eSlot.model and eSlot.model.Parent then
                 local eHrp = eSlot.model:FindFirstChild("HumanoidRootPart") :: BasePart?
                 if eHrp then
                     local toRival = eHrp.Position - hrp.Position
-                    if toRival.Magnitude < 22 and forwardDir:Dot(toRival.Unit) > 0.3 then
+                    if toRival.Magnitude < 24 and forwardDir:Dot(toRival.Unit) > 0.25 then
                         local perpLeft = Vector3.new(-forwardDir.Z, 0, forwardDir.X)
                         local perpRight = Vector3.new(forwardDir.Z, 0, -forwardDir.X)
                         local dodgeDir = if perpLeft:Dot(eHrp.AssemblyLinearVelocity) > 0 then perpRight else perpLeft
-                        moveTarget = hrp.Position + ((forwardDir * 0.55 + dodgeDir * 0.45).Unit * 25)
+                        moveTarget = hrp.Position + ((forwardDir * 0.65 + dodgeDir * 0.35).Unit * 30)
                         break
                     end
                 end
@@ -1550,12 +1552,14 @@ local function updateBotSlotAI(
         end
     end
 
-    -- 3. BALÓN SUELTO
+    -- 3. BALÓN SUELTO: Persecución activa y agresiva
     if currentOwner == nil and currentBall then
         local stealRadius = getStealRadiusFromStat(botStats.defense)
-        if designatedPresser == slot then
+
+        -- Si es el asignado o está cerca del balón (menos de 45 studs), va a por él
+        if designatedPresser == slot or distToBall < 45 then
             local bVel = currentBall.AssemblyLinearVelocity
-            local interceptPos = if bVel.Magnitude > 15 then ballPos + Vector3.new(bVel.X, 0, bVel.Z) * 0.35 else ballPos
+            local interceptPos = if bVel.Magnitude > 10 then ballPos + Vector3.new(bVel.X, 0, bVel.Z) * 0.4 else ballPos
             humanoid:MoveTo(interceptPos)
 
             if distToBall < stealRadius and not isKickOnCooldown then
