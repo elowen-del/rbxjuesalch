@@ -1,0 +1,22 @@
+{
+  "name": "roblox-prueba-1",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Prueba1Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "Prueba1Client": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}
+
